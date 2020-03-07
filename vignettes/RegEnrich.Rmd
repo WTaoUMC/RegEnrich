@@ -1,0 +1,771 @@
+---
+title: "RegEnrich: an R package for gene regulator enrichment analysis"
+author: Weiyang Tao, Timothy R.D.J. Radstake, Aridaman Pandit <br>
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_document:
+    highlight: pygments
+    toc: true
+    fig_width: 5
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Gene regulator enrichment with RegEnrich}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+abstract: >
+  Changes in a few key transcriptional regulators can alter different 
+  gene expression leading to different biological states, 
+  including disease, cellular activation, and differentiation. 
+  Extracting the key gene regulators governing a 
+  biological state can allow us to gain mechanistic insights and can 
+  further help in translational research. Most current tools perform 
+  pathway/GO enrichment analysis to identify key genes and regulators but 
+  tend to overlook the regulatory interactions between genes and proteins.
+  Here, we present RegEnrich, an open source R package, which generates
+  data-driven gene regulatory networks and performs enrichment analysis 
+  to extract a network of key regulators. RegEnrich further allows users 
+  to integrate literature-based networks and multi-omics data to better 
+  understand the underlying biological mechanisms.
+  RegEnrich package version: `r packageVersion("RegEnrich")`
+bibliography: bibliography.bib
+---
+- - - - - 
+
+```{r, global_options, echo=FALSE, results="hide", eval=TRUE}
+knitr::opts_chunk$set(collapse = TRUE, 
+                      comment = "#>", 
+                      fig.width = 5, 
+                      fig.height = 4.5, 
+                      fig.align = "center",
+                      echo=TRUE, 
+                      warning=FALSE, 
+                      message=TRUE, 
+                      tidy.opts=list(width.cutoff=80), 
+                      tidy=FALSE)
+rm(list = ls())
+gc(reset = TRUE)
+options(max.print = 200, width = 110)
+```
+
+<!-- **If you use RegEnrich in your research, please cite:** -->
+
+<!-- > Tao, W. et al. -->
+<!-- > RegEnrich: an R package for gene regulator enrichment analysis. -->
+<!-- > *XXX*, **XX**:XXX (2019). -->
+
+# Introduction
+This package is a pipeline to identify the key gene regulators in a biological 
+process, for example in cell differentiation and in cell development after stimulation. 
+Given gene expression data and sample information, there are four major 
+steps in this pipeline: (1) differential expression analysis; (2) regulator-target 
+network inference; (3) enrichment analysis; and (4) regulators scoring and ranking.
+
+
+In this tutorial, we are showing you how to perform RegEnrich analysis by starting 
+with a quick example, followed by detailed explanation in each step and three case 
+studies.
+
+- - - - 
+
+# A quick example
+To illustrate how to use RegEnrich pipline, here we simply show the basic steps, 
+assuming you have had all input data and the parameters ready. 
+
+## Including RegEnrich library
+
+```{r setup, warning=FALSE, message=FALSE, results="hide"}
+library(RegEnrich)
+```
+
+
+## Initializing RegenrichSet object
+
+```{r quickExample_Initializing, eval=FALSE, warning=FALSE, message=FALSE, results="hide"}
+object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
+                      pData = sampleInfo, # sample information (data frame)
+                      reg = regulators, # regulators
+                      method = "limma", # differentila expression analysis method
+                      design = designMatrix, # desing model matrix
+                      contrast = contrast, # contrast
+                      networkConstruction = "COEN", # network inference method
+                      enrichTest = "FET") # enrichment analysis method
+```
+
+
+## Runing four major steps and obtaining results 
+
+```{r quickExample_4Steps, eval=FALSE, warning=FALSE, message=FALSE, results="hide"}
+# Differential expression analysis
+object = regenrich_diffExpr(object)
+# Regulator-target network inference
+object = regenrich_network(object)
+# Enrichment analysis
+object = regenrich_enrich(object)
+# Regulator scoring and ranking
+object = regenrich_rankScore(object)
+
+# Obtaining results
+res = results_score(object)
+```
+
+
+The code can be even simpler if `dplyr` package has been installed.
+
+```{r quickExample_simpler, eval=FALSE, warning=FALSE, message=FALSE, results="hide"}
+library(dplyr) # to use %>% 
+# Perform 4 steps in RegEnrich analysis
+object = regenrich_diffExpr(object) %>% 
+  regenrich_network() %>% 
+  regenrich_enrich() %>% 
+  regenrich_rankScore()
+
+res = results_score(object)
+```
+- - -
+
+
+# RegenrichSet object initialization
+## The RegenrichSet object
+RegEnrich package is programmed in a style of `S4` object system. The most fundamental class
+in RegEnrich is `RegenrichSet`, and majority functions are working with this class in the 
+following analysis steps. So the `RegenrichSet` object must be initialized prior to RegEnrich 
+analysis. The `RegenrichSet` object can be easily initialized by `RegenrichSet` function, which
+require several input data along with other parameters.
+
+
+## Input data
+
+There are three fundamental input data for RegEnrich pipline. 
+
+### Expression data
+The first one is expression 
+data (`expr`), which is a table (`matrix`) with m rows (genes or proteins) and n columns (samples). 
+Here the expression data can be of genes, measured by microarray or 
+RNA sequencing, and can be of proteins, measured by mass spectrometry, etc. 
+
+Here we downloaded the gene expression data (RNA-sequencing data in FPKM format) that is from 
+[@bouquet2016longitudinal] in GEO database 
+([GSE63085](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63085)). And 
+only 52 samples were included in `Lyme_GSE63085` dataset and can be loaded in the 
+following way.
+
+```{r loadExpr}
+data(Lyme_GSE63085)
+FPKM = Lyme_GSE63085$FPKM
+```
+
+Althouth here RNA-sequencing data is reprensented in FPKM (Fragments Per Kilobase of 
+transcript per Million) format, we do recomment raw 
+read count format. To further work on this FPKM data, we convert the FPKM data (plus 1) 
+into logarithm to the base 2. 
+
+```{r transformFPKM}
+log2FPKM = log2(FPKM + 1)
+print(log2FPKM[1:6, 1:5])
+```
+
+### Sample information
+The second input data is sample information (`pData`), which is also a table (`data.frame`),
+showing which samples (rows) belonging to which groups or having what features (columns).
+Here we use the sample information for the 52 samples in `Lyme_GSE63085` dataset.
+
+```{r loadSampleInformation}
+sampleInfo = Lyme_GSE63085$sampleInfo
+# transform week to factor
+sampleInfo$week = as.factor(sampleInfo$week)
+# modify "-" to "_" in patientID, and transform it to factor
+sampleInfo$patientID = as.factor(sub("(\\d+)-(\\d+)", "\\1_\\2", sampleInfo$patientID))
+
+head(sampleInfo)
+```
+
+
+### Regulators
+The third input is the regulators in the studied organisms. If the organism is human,
+RegEnrich by default provided transcrpiton factors and co-factors in humans as the regulators 
+which are obtained from [@han2015trrust; @marbach2016tissue; and @liu2015regnetwork].
+```{r loadTFs}
+data(TFs)
+head(TFs)
+```
+
+You can define your own regulators in RegEnrich. For example, for the studies in other
+organisms such as mouse, yeast, drosophila and arabidopsis thaliana, you can use the 
+transcription (co-)factors in the following links, and cite corresponding paper:
+
+
+[*Mouse*](http://tools.sschmeier.com/tcof/home/), 
+[*Yeast*](http://www.yeastract.com/consensuslist.php), 
+[*Drosophila*](https://www.mrc-lmb.cam.ac.uk/genomes/FlyTF/old_index.html), and
+[*Arabidopsis thaliana*](http://planttfdb.cbi.pku.edu.cn/index.php?sp=Ath)
+
+
+But one thing to keep in mind, the type of names or IDs of regulators should be the same as
+those of genes in the expression data. For example, if ENSEMBL gene ID is used in 
+the expression data, then the regulators should be represented by ENSEMBL gene ID as well.
+
+
+## Other parameters
+In addition to previous 3 most fundamental input data, other parameters for RegEnrich 
+analysis can be initialized here as well. These parameters include 3 groups. 
+
+First, parameters to perform differential expression analysis, such as `method` (differential 
+test method), `minMeanExpr` (the threshold to remove the lowly expressed gene), `design` 
+(design model matrix or formula), `reduced` (reduced model matrix or formula), `contrast` 
+(to extract the coefficients in the model), etc. 
+Here we consider the effect of different patients and time (`week` in sample information 
+table) on gene expression. To identify the differential genes related to time, we can simply use 
+`LRT_LM` method (likelihood retio test on two linear model) to perfrom differential expression 
+analysis. So the corresponding parameters are defined by:
+
+```{r design, }
+method = "LRT_LM"
+# design and reduced formulae
+design = ~ patientID + week
+reduced = ~ patientID
+```
+
+
+Second, parameters to perform regulator-target network inference, such as `networkConstruction`
+(network inference method), `topNetPercent` (what percentage of the top edges to retain), etc.
+Here we use `COEN` method (weighted gene coexpression network) and other default parameters to 
+inference regulator-target network.
+```{r networkConstruction, }
+networkConstruction = "COEN"
+```
+
+
+Third, parameters to perform enrichment analysis, such as `enrichTest` (enrichment method), 
+`minSize` (minimum number of targets of regulator), etc.
+Here we use `FET` method (Fisher's exact test) and other default parameters to perform 
+enrichment analysis.
+```{r enrichTest, }
+enrichTest = "FET"
+```
+
+The detailed explaination of these parameters can be found in the help page of `RegenrichSet`
+function, which can be viewed by `?RegenrichSet`. Unlike expression data and sample information
+data, these parameters can be re-specified in the later steps of RegEnrich analysis. 
+
+
+## Initializing RegenrichSet object
+To reduce the running time, we consider the first 2000 genes, and remove genes 
+with mean log2FPKM <= 0.01. 
+```{r Initializing}
+object = RegenrichSet(expr = log2FPKM[1:2000, ],
+                      pData = sampleInfo,
+                      method = "LRT_LM", 
+                      minMeanExpr = 0.01,
+                      design = ~ patientID + week,
+                      reduced = ~ patientID,
+                      networkConstruction = "COEN", 
+                      enrichTest = "FET")
+print(object)
+```
+
+- - - - - 
+
+# Differential expression analysis
+In this step, the major goal is to obtain differential p-values and log2 fold changes of gene 
+expression between different conditions. There are couple of packages being developed to perform
+differential expression analysis, such as
+[DESeq2](http://bioconductor.org/packages/SESeq2),
+[edgeR](http://bioconductor.org/packages/edgeR),
+[limma](http://bioconductor.org/packages/limma),
+[DSS](http://bioconductor.org/packages/DSS),
+[EBSeq](http://bioconductor.org/packages/EBSeq), and
+[baySeq](http://bioconductor.org/packages/baySeq).
+The full tutorials of these packages have been already provided as vignettes or other documentation in
+these packages. Here, we provide a wraper function, `regenrich_diffExpr`, which allows you to choose
+either "Wald_DESeq2", "LRT_DESeq2", "limma", or "LRT_LM" to perform the differential expression analysis
+on the `RegenrichSet` obejct. 
+  
+## Use the parameters initialized in the RegenrichSet object
+Since RegenrichSet object is initialized with `method = "LRT_LM"`, 
+`regenrich_diffExpr` function performs differential expression analysis using likelihood ratio test on
+two linear models that are specified by `design` formula and `reduced` formula. 
+
+```{r regenrich_diffExpr}
+object = regenrich_diffExpr(object)
+print(object)
+print(results_DEA(object))
+```
+
+`LRT_LM` method is implemented for data with complicated experiment designs, in which it is less 
+meaningful to calculate log2 fold changes. In the current version of RegEnrich, calculating the 
+log2 fold change between conditions is not implemented in `LRT_LM` method. And the log2 fold 
+changes of all genes are set to 0 by default. 
+
+
+## Re-specify the parameters for differential expression analysis
+Here, parameters to perform differential expression analysis can be re-specified in 
+`regenrich_diffExpr` function. Below, we show an example of using limma to obtain differential 
+expressed genes, by changing parameters.
+
+```{r regenrich_diffExprLimma}
+object2 = regenrich_diffExpr(object, method = "limma", coef = "week3")
+print(object2)
+print(results_DEA(object2))
+```
+
+More detailed explaination of `regenrich_diffExpr` function can be accessed by `?regenrich_diffExpr`.
+
+
+- - - - 
+
+# Regulator-target network inference
+
+RegEnrich provides two computational methods, `COEN` and `GRN`,
+to infer regulator-target network based on expression data. 
+For COEN method, the weighted co-expression network is constructed using
+[WGCNA](https://cran.r-project.org/web/packages/WGCNA/index.html)
+package, and then the regulator-target network is the robust subnetwork
+of weighted co-expression network, and the nodes and edges are removed if 
+they are not connected to any regulators. 
+With respect to GRN, it infers regulator-target network using random forest algorithm. 
+This method was initially described in
+[GENIE3](http://www.montefiore.ulg.ac.be/~huynh-thu/software.html) package,
+and it is modified in RegEnrich to support parallel computing and to
+control the model accuracy. Regulator-target network inferences using COEN and 
+GRN methods are shown bellow. 
+
+## COEN (based on WGCNA)
+`regenrich_network` is the function to perform regulator-target network inference. 
+Since the `networkConstruction = "COEN"` parameter has been set during the RegenrichSet
+initialization, so by default RegEnrich constructs a `COEN` network.
+
+```{r network_COEN}
+set.seed(123)
+object = regenrich_network(object)
+print(object)
+```
+
+What happens under the hood in above codes is updating `object@topNetP` slot, which is a
+`Topnetwork` class. RegEnrich provides a function to access this slot.
+```{r network_COEN_topNet}
+# TopNetwork class
+print(results_topNet(object))
+```
+
+Please note that since the oganism of
+[GSE63085](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63085)
+dataset is Homo sapien, the regulators used in RegEnrich by default are obtained from 
+[@han2015trrust; @marbach2016tissue; and @liu2015regnetwork]. And we are using gene 
+names in the expression data, so the regulators here are also represented by gene names.
+```{r object_paramsIn_reg}
+# All parameters are stored in object@paramsIn slot
+head(slot(object, "paramsIn")$reg)
+```
+
+
+Since network inference is generally very time-consuming, we suggest saving 
+the `RegenrichSet` object with the regulator-target network in case of 
+using it next time.
+```{r save_object, eval=FALSE}
+# Saving object to 'fileName.Rdata' file in '/folderName' directory
+save(object, file = "/folderName/fileName.Rdata")
+```
+A more detailed explaination can be found in the help pages of `regenrich_network`
+(see `?regenrich_network`) and `TopNetwork-class` (see `?"TopNetwork-class"`).
+
+
+## GRN (based on random forest)
+
+Alternatively, you can build a gene regulatory network (`GRN`) by setting 
+`networkConstruction = "GRN"` parameter in `regenrich_network` function.
+To accelarate computing, you can set number of CPU cores and random seeds 
+using `BPPARAM` parameter. 
+Here you can control the accuracy of network inferance by `minR` which are computed 
+based on out-of-bag estimation in random forest. Please note that the lower `minR` 
+is set, the less edges and potential less regulators are retained.
+
+```{r regenrich_network_GRN, eval=FALSE}
+### not run
+library(BiocParallel)
+# on non-Windows computers (use 2 workers)
+bpparam = register(MulticoreParam(workers = 2, RNGseed = 1234))
+# on Windows computers (use 2 workers)
+bpparam = register(SnowParam(workers = 2, RNGseed = 1234))
+
+object3 = regenrich_network(object, networkConstruction = "GRN", 
+                           BPPARAM = bpparam, minR = 0.3)
+print(object3)
+print(results_topNet(object3))
+save(object3, file = "/folderName/fileName3.Rdata")
+```
+
+## User defined network
+It is also possible to provide a regulator-target network, which is obtained somewhere else.
+For example, this network can be constructed based on the relation network of transcription 
+factors and their binding targets. 
+Here we assigned the constructed `COEN` regulator-target network (a `Topnetwork` object) in 
+`object` variable to `object2` variable.
+
+```{r user_defined_network1}
+network_user = results_topNet(object)
+print(class(network_user))
+regenrich_network(object2) = network_user
+print(object2)
+```
+
+It is also fine to provide a 3-column table (`data.frame` object) of network edges, in which 
+the first column is regulators, the second column is targets, and the third column is edge
+weight (reliability).
+```{r user_defined_network_edges}
+# network_user = results_topNet(object)@netTable
+network_user = slot(results_topNet(object), "netTable")
+print(class(network_user))
+regenrich_network(object2) = network_user
+print(object2)
+```
+
+- - - - 
+
+# Enrichment analysis
+RegEnrich provides two methods to perform enrichment analysis, i.e. Fisher's exact test (`FET`)
+and gene set enrichment analysis (`GSEA`). Both methods are implemented in `regenrich_enrich`
+function.
+`regenrich_enrich` function updates `object@resEnrich` slot, which is a
+`Enrich` class. RegEnrich provides `results_enrich` function to access this slot.
+
+## Fisher's exact test (FET)
+Since the `enrichTest = "FET"` parameter has been set during the RegenrichSet initialization, 
+so by default RegEnrich performs enrichment analysis using `FET` method.
+```{r regenrich_enrich_FET}
+object = regenrich_enrich(object)
+print(results_enrich(object))
+# enrich_FET = results_enrich(object)@allResult
+enrich_FET = slot(results_enrich(object), "allResult")
+head(enrich_FET[, 1:6])
+```
+
+## Gene set enrichment analysis (GSEA)
+Since the `enrichTest = "FET"` parameter has been set during the RegenrichSet initialization, 
+but `enrichTest = GSEA` parameter can be re-specified in `regenrich_enrich` function to 
+perform enrichment analysis using `GSEA` method. Typically, `GSEA` is slower than `FET` method,
+especially when the number of `reg` is large and the regulator-target network is also large.
+Reducing the number of permutation (`nperm`, default is 10,000) can be a good trial to have a 
+look at preliminary results.
+
+```{r regenrich_enrich_GSEA}
+set.seed(123)
+object2 = regenrich_enrich(object, enrichTest = "GSEA", nperm = 5000)
+print(results_enrich(object))
+# enrich_GSEA = results_enrich(object2)@allResult
+enrich_GSEA = slot(results_enrich(object2), "allResult")
+head(enrich_GSEA[, 1:6])
+```
+
+You can compare the order of enriched regulators obtained by FET and GSEA methods using 
+`plotOrders` function.
+
+```{r comparingFET_GSEA, fig.height=5, fig.width=5, eval=FALSE}
+plotOrders(enrich_FET[1:20,1], enrich_GSEA[1:20,1])
+```
+
+
+- - - - 
+
+# Regulator scoring and ranking
+
+The RegEnrich score is a summarized information from both differential expression analysis and 
+regulator enrichment analysis for regulators. This step of RegEnrich analysis is done by
+`regenrich_rankScore` function.
+
+Above all, the differential expression analysis is perormed by `LRT_LM` method, 
+regulator-target network is infered by `COEN` method, and enrichment analysis is 
+performed by `FET` method, so the scores and ranking summarize the importance 
+of regulators by considering regulatory interactions in the studied biological process.
+
+```{r regenrich_rankScore}
+object = regenrich_rankScore(object)
+head(results_score(object))
+```
+
+The expression of regulator and its targets can be viewed using following code.
+```{r plotExpressionRegulatorTarget, fig.height=4.5, fig.width=6, eval=FALSE}
+plotRegTarExpr(object, reg = "ARNTL2")
+```
+
+Note that the previous analysis is a tutorial showing you how to perform basic RegEnrich analysis. 
+As you known this analysis is based on only first 2000 genes, the real key regulators 
+should be different from the previous results.
+
+RegEnrich can work with different types of dataset, such as microarray data, RNAseq raw read count 
+data, and mass spectrometriy proteomic data. The following section shows you 2 case studies of using 
+RegEnrich to work with these 2 types of datasets.
+
+- - - - 
+
+# Case studies
+## Case 1: Microarray (single-channel) data 
+### Background
+This case study analyzes gene expression changes of primary human hepatocytes after 6 and 24 h 
+treatment with interferon alpha (IFN-α). The gene expression was examined using single-channel Affymetrix 
+Human Genome U133 Plus 2.0 Arrays. And the raw data and normalized data is available in GEO database 
+under [GSE31193](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE31193) accession ID.
+
+### Reading the data
+There are several ways to read the data. 
+You can download the [normalized data file](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE31nnn/GSE31193/matrix/), 
+decompress it, and then read it using `read.csv` function.
+
+
+Reading the raw data (.cel files) and then normalize it using other normalization method is also possible. 
+As there is a simpler way to read data from GEO database, this method is not included in this vignette.
+```{r case1ReadData1_1, eval=FALSE, include=FALSE}
+# Download all .cel files from GEO database (GSE31193 dataset) to current folder 
+# and then decompress it to GSE31193_RAW folder.
+library(affy)
+abatch = ReadAffy(celfile.path = "./GSE31193_RAW/")
+
+# Data normalization
+eset <- rma(abatch)
+
+# Annotation
+library(annotate)
+library(hgu133plus2.db)
+
+ID <- featureNames(eset)
+Symbol <- getSYMBOL(ID, "hgu133plus2.db")
+fData(eset) <- data.frame(Symbol=Symbol)
+
+```
+
+
+The simplist way to read the data is using `GEOquery` library. To use this library, you must 
+have this package installed.
+```{r case1ReadData1_2, warning=FALSE, message=FALSE}
+if (!requireNamespace("GEOquery"))
+ BiocManager::install("GEOquery")
+
+library(GEOquery)
+eset <- getGEO(GEO = "GSE31193")[[1]]
+```
+
+
+This dataset contains samples treated with IL28B, but here we are focusing on only control samples
+and samples after 6 and 24 h IFN-α treatment. 
+
+```{r case1ReadData1_3}
+# Samples information
+pd0 = pData(eset)
+pd = pd0[, c("title", "time:ch1", "agent:ch1")]
+colnames(pd) = c("title", "time", "group")
+pd$time = factor(c(`n/a` = "0", `6` = "6", `24` = "24")[pd$time], 
+                 levels = c("0", "6", "24"))
+pd$group = factor(pd$group, levels = c("none", "IFN", "IL28B"))
+pData(eset) = pd
+
+# Only samples without or after 6 and 24 h IFN-α treatment
+eset_IFN = eset[, pd$group %in% c("none", "IFN")]
+
+# Order the samples based on time of treatment
+pData(eset_IFN) = pData(eset_IFN)[order(pData(eset_IFN)$time),]
+
+# Rename samples 
+colnames(eset_IFN) = pData(eset_IFN)$title
+
+# Probes information
+probeGene = fData(eset_IFN)[, "Gene Symbol", drop = FALSE]
+```
+
+Here to simplify the analysis, if there are multiple probes matching a gene, 
+we use only one probe with higher average expression value to represent this gene.
+```{r case1ReadData1_4}
+probeGene$meanExpr = rowMeans(exprs(eset_IFN))
+probeGene = probeGene[order(probeGene$meanExpr, decreasing = TRUE),]
+
+# Keep a single probe for a gene, and remove the probe matching no gene.
+probeGene_noDu = probeGene[!duplicated(probeGene$`Gene Symbol`), ][-1,] 
+
+data = eset_IFN[rownames(probeGene_noDu), ]
+rownames(data) = probeGene_noDu$`Gene Symbol`
+```
+
+
+Because the speed of network infernece is highly influenced by the number of genes,
+to quickly illustrate how to use RegEnrich, here we randomly take only 5,000 genes 
+for analysis. If you would like to see the real result in the analysis, then the 
+following data subsetting step should be discarded.
+
+```{r case1ReadData1_5}
+set.seed(1234)
+data = data[sample(1:nrow(data), 5000), ]
+```
+
+### RegEnrich analysis
+Here we would like to know which regulators play key roles in primary human hepatocytes 
+after *24 h* treatment with IFN-α.
+
+```{r case1RegEnrichAnalyais, message=FALSE}
+expressionMatrix = exprs(data) # expression data
+# rownames(expressionMatrix) = probeGene_noDu$`Gene Symbol`
+sampleInfo = pData(data) # sample information
+
+design = ~time
+contrast = c(0, 0, 1) # to extract the coefficient "time24"
+
+# Initializing a RegenrichSet object
+object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
+                      pData = sampleInfo, # sample information (data frame)
+                      reg = unique(TFs$TF_name), # regulators
+                      method = "limma", # differentila expression analysis method
+                      design = design, # desing fomula
+                      contrast = contrast, # contrast
+                      networkConstruction = "COEN", # network inference method
+                      enrichTest = "FET") # enrichment analysis method
+
+# Perform RegEnrich analysis
+library(dplyr)
+set.seed(123)
+
+# This procedure takes quite a bit of time.
+object = regenrich_diffExpr(object) %>% 
+  regenrich_network() %>% 
+  regenrich_enrich() %>% 
+  regenrich_rankScore()
+```
+
+
+```{r case1RegEnrichResults, message=FALSE}
+res = results_score(object)
+head(res, 10)
+```
+
+```{r case1Plot, , fig.height=4.5, fig.width=6, eval=FALSE}
+plotRegTarExpr(object, reg = "NMI")
+```
+
+
+## Case 2: RNAseq read count data
+### Background
+Here we show how to apply RegEnrich on the RNAseq data by analyzing Kang et al's 
+monocyte-macrophage-IFN stimulation dataset (
+[GSE130567](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE130567)). There are multiple 
+experiment conditions in this study. But here we would like to focus on partial samples in 
+which monocytes were cultured with 10 ng/ml human macrophage colonystimulating factor (M-CSF) 
+in the presence (IFN-γ-primed macrophages) or absence (resting macrophages) of 100 U/ml human 
+IFN-γ for 48 h. RNA were extracted and reverse transcripted followed by sequencing (50 bp, paired-end)
+using Illumina HiSeq 4000. Sequenced reads were mapped to reference human genome (hg19 assembly) 
+using STAR aligner with default parameters. We will use the raw HT-seq counts for the RegEnrich
+analysis.
+
+### Reading the data
+Since the sample information and raw read counts data are archived seperately in GEO database.
+First, we can read the sample information using `GEOquery` package.
+
+```{r case2ReadData1, message = FALSE}
+library(GEOquery)
+eset <- getGEO(GEO = "GSE130567")[[1]]
+pdata = pData(eset)[, c("title", "geo_accession", "cultured in:ch1", "treatment:ch1")]
+colnames(pdata) = c("title", "accession", "cultured", "treatment")
+pData(eset) = pdata
+
+# Only samples cultured with M-CSF in the presence or absence of IFN-γ
+eset = eset[, pdata$treatment %in% c("NT", "IFNG-3h") & pdata$cultured == "M-CSF"]
+
+# Sample information
+sampleInfo = pData(eset)
+rownames(sampleInfo) = paste0(rep(c("Resting", "IFNG"), each = 3), 1:3)
+sampleInfo$treatment = factor(rep(c("Resting", "IFNG"), each = 3), 
+                              levels = c("Resting", "IFNG"))
+```
+
+Second, download read count file and decompose into a temporary folder.
+```{r case2DownloadReads, message=FALSE, warning=FALSE}
+tmpFolder = tempdir()
+tmpFile = tempfile(pattern = "GSE130567_", tmpdir = tmpFolder, fileext = ".tar")
+download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE130567&format=file", 
+              destfile = tmpFile)
+untar(tmpFile, exdir = tmpFolder)
+files = untar(tmpFile, list = TRUE)
+filesFull = file.path(tmpFolder, files)
+```
+
+
+Then read the raw read counts in these files.
+```{r case2ReadData2, message=FALSE, warning=FALSE}
+dat = list()
+for (file in filesFull){
+  accID = gsub(".*(GSM\\d{7}).*", "\\1", file)
+  if(accID %in% sampleInfo$accession){
+    zz = gzfile(file, "rt")
+    zzdata = read.csv(zz, header = FALSE, sep = "\t", skip = 4, row.names = 1)
+    close(zz)
+    zzdata = zzdata[,1, drop = FALSE] # Extract the first numeric column
+    colnames(zzdata) = accID
+    dat = c(dat, list(zzdata))
+  }
+}
+edata = do.call(cbind, dat)
+
+edata = edata[grep(".*[0-9]+$", rownames(edata)),] # remove PAR locus genes
+rownames(edata) = substr(rownames(edata), 1, 15)
+colnames(edata) = rownames(sampleInfo)
+
+# Retain genes with average read counts higher than 1 
+edata = edata[rowMeans(edata) > 1,]
+```
+
+Similar to the case 1, here we randomly take only 5,000 genes to quickly illustrate how to use 
+RegEnrich, but to see the real result from the analysis, you should neglect the following step. 
+
+```{r case2ReadData1_3}
+set.seed(1234)
+edata = edata[sample(1:nrow(edata), 5000), ]
+```
+
+
+### RegEnrich analysis
+```{r case2RegEnrich}
+expressionMatrix = as.matrix(edata) # expression data
+
+design = ~ treatment
+reduced = ~ 1
+
+# Initializing a RegenrichSet object
+object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
+                      pData = sampleInfo, # sample information (data frame)
+                      reg = unique(TFs$TF), # regulators
+                      method = "LRT_DESeq2", # differentila expression analysis method
+                      design = design, # desing fomula
+                      reduced = reduced, # reduced
+                      networkConstruction = "COEN", # network inference method
+                      enrichTest = "FET") # enrichment analysis method
+
+# Perform RegEnrich analysis
+library(dplyr)
+set.seed(123)
+
+# This procedure takes quite a bit of time.
+object = regenrich_diffExpr(object) %>% 
+  regenrich_network() %>% 
+  regenrich_enrich() %>% 
+  regenrich_rankScore()
+```
+
+
+```{r case2RegEnrichResults, message=FALSE}
+res = results_score(object)
+res$name = TFs[res$reg, "TF_name"]
+head(res, 10)
+```
+
+```{r case2Plot, , fig.height=4.5, fig.width=6, eval=FALSE}
+plotRegTarExpr(object, reg = "ENSG00000101255")
+```
+
+<!-- ## Case 3: Proteomic (mass spectrometry) data -->
+
+- - -
+
+# Session info
+
+```{r session}
+sessionInfo()
+```
+
+- - -
+
+# References
