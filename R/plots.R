@@ -188,6 +188,7 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
 #' in \code{\link{pickSoftThreshold}}. The \code{plot} is a ggplot object.
 #' @seealso \code{\link{pickSoftThreshold}}
 #' @import WGCNA
+#' @importFrom doParallel registerDoParallel
 #' @examples
 #' data(Lyme_GSE63085)
 #' log2FPKM = log2(Lyme_GSE63085$FPKM + 1)
