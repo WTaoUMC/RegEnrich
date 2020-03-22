@@ -38,7 +38,8 @@ test_that("limma_COEN_FET/GSEA works",{
 
   set.seed(1234)
   tmp = capture.output(object <- regenrich_enrich(object, enrichTest = "GSEA"))
-  expect_equal(log(object@resEnrich@allResult$pval[1]), log(0.0001016776817)) # test 6
+  expect_equal(log(round(object@resEnrich@allResult$pval[1], digits = 4)), 
+               log(0.0001)) # test 6
 
   tmp = capture.output(object <- regenrich_rankScore(object))
   expect_equal(object@resScore$score[1], 1.784030808) # test 7
