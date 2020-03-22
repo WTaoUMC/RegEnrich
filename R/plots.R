@@ -195,6 +195,11 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
 #' log2FPKMhi = log2FPKM[rowMeans(log2FPKM) >= 10^-3, , drop = FALSE]
 #' log2FPKMhi = head(log2FPKMhi, 3000) # First 3000 genes for example
 #' softP = plotSoftPower(log2FPKMhi, RsquaredCut = 0.85)
+#' \dontshow{
+#' rm(softP)
+#' gc(reset = TRUE)
+#' }
+#' 
 #' @export
 plotSoftPower = function(expr, rowSample = FALSE,
     powerVector = c(seq_len(10), seq(12, 20, by=2)),
