@@ -1,6 +1,6 @@
 ---
 title: "RegEnrich: an R package for gene regulator enrichment analysis"
-author: Weiyang Tao, Timothy R.D.J. Radstake, Aridaman Pandit <br>
+author: Weiyang Tao, Aridaman Pandit <br>
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::html_document:
