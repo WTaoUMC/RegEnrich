@@ -52,7 +52,6 @@ plotOrders = function(name1, name2) {
 # @rawNamespace import(ggplot2, except = margin)
 #' @export
 #' @examples
-#' \dontrun{
 #' # constructing a RegenrichSet object
 #' pdata = data.frame(patientID = paste0('Sample_', seq_len(50)),
 #'                    week = rep(c('0', '1'), each = 25),
@@ -77,6 +76,7 @@ plotOrders = function(name1, name2) {
 #'                       enrichTest = 'FET',
 #'                       reg = paste0('gene', seq_len(30)))
 #'
+#' \dontrun{
 #' ## RegEnrich analysis
 #' object = regenrich_diffExpr(object)
 #' # Set a random softPower, otherwise it is difficult to achive a
@@ -192,13 +192,11 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
 #' @import WGCNA
 #' @importFrom doParallel registerDoParallel
 #' @examples
-#' \dontrun{
 #' data(Lyme_GSE63085)
 #' log2FPKM = log2(Lyme_GSE63085$FPKM + 1)
 #' log2FPKMhi = log2FPKM[rowMeans(log2FPKM) >= 10^-3, , drop = FALSE]
 #' log2FPKMhi = head(log2FPKMhi, 3000) # First 3000 genes for example
-#' library(WGCNA)
-#' library(ggplot2)
+#' \dontrun{
 #' softP = plotSoftPower(log2FPKMhi, RsquaredCut = 0.85)
 #' }
 #' @export

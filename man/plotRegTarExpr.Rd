@@ -54,7 +54,6 @@ alt='Figure: plotRegTarExpr2.png'}}
 Plot regulator and its targets expression
 }
 \examples{
-\dontrun{
 # constructing a RegenrichSet object
 pdata = data.frame(patientID = paste0('Sample_', seq_len(50)),
                    week = rep(c('0', '1'), each = 25),
@@ -79,6 +78,7 @@ object = RegenrichSet(expr = cnts,
                       enrichTest = 'FET',
                       reg = paste0('gene', seq_len(30)))
 
+\dontrun{
 ## RegEnrich analysis
 object = regenrich_diffExpr(object)
 # Set a random softPower, otherwise it is difficult to achive a

@@ -51,7 +51,7 @@ options(max.print = 200, width = 110)
 
 <!-- > Tao, W. et al. -->
 <!-- > RegEnrich: an R package for gene regulator enrichment analysis. -->
-<!-- > *XXX*, **XX**:XXX (2019). -->
+<!-- > *XXX*, **XX**:XXX (2020). -->
 
 # Introduction
 This package is a pipeline to identify the key gene regulators in a biological 
@@ -755,8 +755,6 @@ head(res, 10)
 ```{r case2Plot, , fig.height=4.5, fig.width=6, eval=FALSE}
 plotRegTarExpr(object, reg = "ENSG00000101255")
 ```
-
-<!-- ## Case 3: Proteomic (mass spectrometry) data -->
 
 - - -
 
