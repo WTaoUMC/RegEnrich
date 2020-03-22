@@ -207,7 +207,8 @@ plotSoftPower = function(expr, rowSample = FALSE,
      }
     # Call the network topology analysis function
     # enableWGCNAThreads()
-    # on.exit(disableWGCNAThreads())
+    registerDoParallel(1)
+    on.exit(disableWGCNAThreads())
     sft = pickSoftThreshold(expr, RsquaredCut = RsquaredCut,
          powerVector = powerVector,
          networkType = networkType,
