@@ -4,10 +4,12 @@
 \name{TFs}
 \alias{TFs}
 \title{Human gene regulators}
-\format{An object of 2-column \code{data.frame}; The first column is
+\format{
+An object of 2-column \code{data.frame}; The first column is
 ENSEMBL ID of gene regulators. The second column is gene name of gene
 regulators. The row name of this data frame is identical to the
-ENSEMBL ID column.}
+ENSEMBL ID column.
+}
 \usage{
 data(TFs)
 }

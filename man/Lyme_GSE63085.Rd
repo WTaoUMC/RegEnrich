@@ -4,12 +4,14 @@
 \name{Lyme_GSE63085}
 \alias{Lyme_GSE63085}
 \title{Example RNAseq dataset [Human]}
-\format{A list of 2 elements: FPKM and sampleInfo. FPKM is the 'Fragments
+\format{
+A list of 2 elements: FPKM and sampleInfo. FPKM is the 'Fragments
 Per Kilobase of transcript per Million mapped reads' data, which is a
 5000 (genes) * 52 (samples) data frame. sampleInfo is the information of
 samples, which is 52 (samples) * 9 (features) data frame. The full version
 of FPKM table contains 23615 rows, which can be downloaded from GEO
-database.}
+database.
+}
 \source{
 \href{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63085}{URL}
 }

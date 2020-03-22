@@ -11,8 +11,8 @@ plot_Enrich(object, ...)
   object,
   showCategory = 20,
   reg = NULL,
-  regDescription = data.frame(reg = results_enrich(object)@allResult[, 1], Description =
-    results_enrich(object)@allResult[, 1]),
+  regDescription = data.frame(reg = results_enrich(object)@allResult[, 1], Description
+    = results_enrich(object)@allResult[, 1]),
   font.size = 12
 )
 }
