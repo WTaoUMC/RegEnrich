@@ -677,7 +677,7 @@ Second, download read count file and decompose into a temporary folder.
 tmpFolder = tempdir()
 tmpFile = tempfile(pattern = "GSE130567_", tmpdir = tmpFolder, fileext = ".tar")
 download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE130567&format=file", 
-              destfile = tmpFile, mode = "wb”)
+              destfile = tmpFile, mode = "wb")
 untar(tmpFile, exdir = tmpFolder)
 files = untar(tmpFile, list = TRUE)
 filesFull = file.path(tmpFolder, files)
