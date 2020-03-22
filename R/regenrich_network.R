@@ -98,7 +98,6 @@ setGeneric("regenrich_network",
 #' See \code{\link{TopNetwork-class}} class for more details.
 #'
 #' @examples
-#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -119,6 +118,7 @@ setGeneric("regenrich_network",
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
+#' \dontrun{
 #' # Differential expression analysis
 #' (object = regenrich_diffExpr(object))
 #'

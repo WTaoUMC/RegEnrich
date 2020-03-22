@@ -75,7 +75,6 @@ setGeneric("regenrich_diffExpr",
 #' function, a warning or error will be raised.
 #'
 #' @examples
-#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -96,7 +95,7 @@ setGeneric("regenrich_diffExpr",
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
-#'
+#' \dontrun{
 #' # Using the predifined parameters in the previous step
 #' (object = regenrich_diffExpr(object))
 #'

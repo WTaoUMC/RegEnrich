@@ -42,7 +42,6 @@ differential expression analysis by this function needs to
 be performed on a `RegenrichSet` object.
 }
 \examples{
-\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -63,7 +62,7 @@ object = RegenrichSet(expr = data1,
                       contrast = c(rep(0, ncol(design) - 1), 1),
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
-
+\dontrun{
 # Using the predifined parameters in the previous step
 (object = regenrich_diffExpr(object))
 

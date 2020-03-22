@@ -31,7 +31,6 @@ regulator-target network inference (regenrich_network), and
 enrichment analysis (regenrich_enrich).
 }
 \examples{
-\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -53,6 +52,7 @@ object = RegenrichSet(expr = data1,
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
 
+\dontrun{
 # Differential expression analysis
 object = regenrich_diffExpr(object)
 

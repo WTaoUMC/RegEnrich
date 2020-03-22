@@ -342,11 +342,9 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' @rdname plot_Enrich
 #' @export
 #' @examples
-#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a "RegenrichSet" object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
-#' x = apply(data, 1, sd)
 #' pData = Lyme_GSE63085$sampleInfo
 #' data1 = data[seq_len(2000), ]
 #'
@@ -362,7 +360,7 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = "COEN",
 #'                       enrichTest = "FET")
-#'
+#' \dontrun{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #' # Network inference using "COEN" method
@@ -375,7 +373,7 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' # Enrichment analysis by Fisher's exact test (FET)
 #' object = regenrich_enrich(object, enrichTest = "GSEA")
 #' # plot
-#' plot_Enrich(object")
+#' plot_Enrich(object)
 #' }
 setMethod("plot_Enrich", signature = "RegenrichSet", .plot_Enrich)
 
