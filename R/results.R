@@ -19,7 +19,6 @@
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
 #' pData = Lyme_GSE63085$sampleInfo
-#' x = apply(data, 1, sd)
 #' data1 = data[seq_len(2000), ]
 #'
 #' pData$week = as.factor(pData$week)
