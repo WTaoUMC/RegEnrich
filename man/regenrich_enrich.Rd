@@ -39,6 +39,7 @@ is followed by differential expression analysis (regenrich_diffExpr),
 and regulator-target network inference (regenrich_network).
 }
 \examples{
+\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -68,6 +69,7 @@ object = regenrich_network(object)
 
 # Enrichment analysis by Fisher's exact test (FET)
 (object = regenrich_enrich(object))
+}
 }
 \seealso{
 Previous step \code{\link{regenrich_network}},

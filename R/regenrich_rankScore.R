@@ -27,6 +27,7 @@ setGeneric("regenrich_rankScore",
 #' @seealso Previous step \code{\link{regenrich_enrich}}.
 #' @export
 #' @examples
+#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -59,7 +60,7 @@ setGeneric("regenrich_rankScore",
 #'
 #' # Regulators ranking
 #' (object = regenrich_rankScore(object))
-#'
+#' }
 setMethod("regenrich_rankScore", signature = "RegenrichSet",
     definition = function(object) {
         enrichTest = object@paramsIn$enrichTest

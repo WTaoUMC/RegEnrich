@@ -15,6 +15,7 @@
 #' @rdname results_expr
 #' @export
 #' @examples
+#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -51,7 +52,7 @@
 #' # Regulators ranking
 #' object = regenrich_rankScore(object)
 #' results_score(object)
-#'
+#' }
 results_expr = function(object) {
     object@assayData
 }

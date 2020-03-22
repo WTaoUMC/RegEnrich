@@ -42,6 +42,7 @@ differential expression analysis by this function needs to
 be performed on a `RegenrichSet` object.
 }
 \examples{
+\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -80,6 +81,7 @@ print(slot(object, 'paramsIn')$networkConstruction)
 (object = regenrich_diffExpr(object, minMeanExpr = 1,
                              networkConstruction = 'GRN'))
 print(slot(object, 'paramsIn')$networkConstruction)
+}
 }
 \seealso{
 Initialization of a `RegenrichSet` object

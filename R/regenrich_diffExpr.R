@@ -75,6 +75,7 @@ setGeneric("regenrich_diffExpr",
 #' function, a warning or error will be raised.
 #'
 #' @examples
+#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -113,6 +114,7 @@ setGeneric("regenrich_diffExpr",
 #' (object = regenrich_diffExpr(object, minMeanExpr = 1,
 #'                              networkConstruction = 'GRN'))
 #' print(slot(object, 'paramsIn')$networkConstruction)
+#' }
 #' @rdname regenrich_diffExpr
 #' @include regenrichClasses.R
 #' @seealso Initialization of a `RegenrichSet` object

@@ -467,6 +467,7 @@ Fourth, parameters to perform enrichment analysis:\cr
 `qvalueCutoff`, `regAltName`, `universe`, and `nperm`.\cr\cr
 }
 \examples{
+\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -487,4 +488,5 @@ object = RegenrichSet(expr = data1,
                       contrast = c(rep(0, ncol(design) - 1), 1),
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
+}
 }

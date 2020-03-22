@@ -98,6 +98,7 @@ setGeneric("regenrich_network",
 #' See \code{\link{TopNetwork-class}} class for more details.
 #'
 #' @examples
+#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -123,6 +124,7 @@ setGeneric("regenrich_network",
 #'
 #' # Network inference using 'COEN' method
 #' (object = regenrich_network(object))
+#' }
 #' @rdname regenrich_network
 #' @include regenrichClasses.R
 #'

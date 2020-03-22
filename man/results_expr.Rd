@@ -45,6 +45,7 @@ of regulators.
 }
 }
 \examples{
+\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -81,5 +82,5 @@ results_enrich(object)
 # Regulators ranking
 object = regenrich_rankScore(object)
 results_score(object)
-
+}
 }

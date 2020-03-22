@@ -54,6 +54,7 @@ alt='Figure: plotRegTarExpr2.png'}}
 Plot regulator and its targets expression
 }
 \examples{
+\dontrun{
 # constructing a RegenrichSet object
 pdata = data.frame(patientID = paste0('Sample_', seq_len(50)),
                    week = rep(c('0', '1'), each = 25),
@@ -91,4 +92,5 @@ tail(slot(object, 'resScore'))
 ## plot expression of a regulator and its targets.
 plotRegTarExpr(object, reg = 'gene5')
 plotRegTarExpr(object, reg = 'gene27')
+}
 }

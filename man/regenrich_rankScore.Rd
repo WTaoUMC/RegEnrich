@@ -31,6 +31,7 @@ regulator-target network inference (regenrich_network), and
 enrichment analysis (regenrich_enrich).
 }
 \examples{
+\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -63,7 +64,7 @@ object = regenrich_enrich(object)
 
 # Regulators ranking
 (object = regenrich_rankScore(object))
-
+}
 }
 \seealso{
 Previous step \code{\link{regenrich_enrich}}.

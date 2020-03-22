@@ -46,39 +46,3 @@ the top `showCategory` regulator will be plotted.
 If the GSEA method is applied, the GSEA graph of regulator `reg`
 will be plotted.
 }
-\examples{
-# library(RegEnrich)
-# Initializing a "RegenrichSet" object
-data = log2(Lyme_GSE63085$FPKM + 1)
-x = apply(data, 1, sd)
-pData = Lyme_GSE63085$sampleInfo
-data1 = data[seq_len(2000), ]
-
-pData$week = as.factor(pData$week)
-pData$patientID = as.factor(sub("(\\\\d+)-(\\\\d+)", "\\\\1_\\\\2",
-                            pData$patientID))
-
-design = model.matrix(~0 + patientID + week, data = pData)
-object = RegenrichSet(expr = data1,
-                      pData = pData,
-                      method = "limma", minMeanExpr = 0,
-                      design = design,
-                      contrast = c(rep(0, ncol(design) - 1), 1),
-                      networkConstruction = "COEN",
-                      enrichTest = "FET")
-
-# Differential expression analysis
-object = regenrich_diffExpr(object)
-# Network inference using "COEN" method
-object = regenrich_network(object)
-# Enrichment analysis by Fisher's exact test (FET)
-object = regenrich_enrich(object)
-# plot
-plot_Enrich(object)
-
-# Enrichment analysis by Fisher's exact test (FET)
-object = regenrich_enrich(object, enrichTest = "GSEA")
-# plot
-plot_Enrich(object)
-
-}

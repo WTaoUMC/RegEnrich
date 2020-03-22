@@ -55,6 +55,7 @@ is followed by differential expression analysis (regenrich_diffExpr).
 Provide a network to `RegenrichSet` object.
 }
 \examples{
+\dontrun{
 # library(RegEnrich)
 # Initializing a 'RegenrichSet' object
 data = log2(Lyme_GSE63085$FPKM + 1)
@@ -80,6 +81,7 @@ object = RegenrichSet(expr = data1,
 
 # Network inference using 'COEN' method
 (object = regenrich_network(object))
+}
 }
 \seealso{
 Previous step \code{\link{regenrich_diffExpr}},

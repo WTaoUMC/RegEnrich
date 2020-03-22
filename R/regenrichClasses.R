@@ -599,6 +599,7 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #' @include globals.R
 #' @export
 #' @examples
+#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -619,6 +620,7 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
+#' }
 RegenrichSet = function(expr, pData, method = c("Wald_DESeq2",
     "LRT_DESeq2", "limma", "LRT_LM"), minMeanExpr = NULL, design,
     reduced, contrast, coef = NULL, name, fitType = c("parametric",

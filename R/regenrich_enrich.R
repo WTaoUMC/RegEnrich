@@ -75,6 +75,7 @@ setGeneric("regenrich_enrich",
 #' and next step \code{\link{regenrich_rankScore}}.
 #' @export
 #' @examples
+#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a 'RegenrichSet' object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -104,6 +105,7 @@ setGeneric("regenrich_enrich",
 #'
 #' # Enrichment analysis by Fisher's exact test (FET)
 #' (object = regenrich_enrich(object))
+#' }
 
 setMethod(f = "regenrich_enrich", signature = "RegenrichSet",
     definition = .regenrich_enrich)
