@@ -50,6 +50,7 @@ fitting index to find a proper soft power for WGCNA analysis.
 data(Lyme_GSE63085)
 log2FPKM = log2(Lyme_GSE63085$FPKM + 1)
 log2FPKMhi = log2FPKM[rowMeans(log2FPKM) >= 10^-3, , drop = FALSE]
+log2FPKMhi = head(log2FPKMhi, 3000) # First 3000 genes for example
 softP = plotSoftPower(log2FPKMhi, RsquaredCut = 0.85)
 }
 \seealso{
