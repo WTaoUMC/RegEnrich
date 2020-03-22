@@ -52,6 +52,7 @@ plotOrders = function(name1, name2) {
 # @rawNamespace import(ggplot2, except = margin)
 #' @export
 #' @examples
+#' \dontrun{
 #' # constructing a RegenrichSet object
 #' pdata = data.frame(patientID = paste0('Sample_', seq_len(50)),
 #'                    week = rep(c('0', '1'), each = 25),
@@ -89,6 +90,7 @@ plotOrders = function(name1, name2) {
 #' ## plot expression of a regulator and its targets.
 #' plotRegTarExpr(object, reg = 'gene5')
 #' plotRegTarExpr(object, reg = 'gene27')
+#' }
 plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
     tarCol = "black", tarColAlpha = 0.1, regCol = "#ffaa00",
     xlab = "Samples", ylab = "Z-scores", ...) {
@@ -340,6 +342,7 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' @rdname plot_Enrich
 #' @export
 #' @examples
+#' \dontrun{
 #' # library(RegEnrich)
 #' # Initializing a "RegenrichSet" object
 #' data = log2(Lyme_GSE63085$FPKM + 1)
@@ -372,8 +375,8 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' # Enrichment analysis by Fisher's exact test (FET)
 #' object = regenrich_enrich(object, enrichTest = "GSEA")
 #' # plot
-#' plot_Enrich(object)
-#'
+#' plot_Enrich(object")
+#' }
 setMethod("plot_Enrich", signature = "RegenrichSet", .plot_Enrich)
 
 
