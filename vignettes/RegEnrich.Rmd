@@ -634,7 +634,7 @@ head(res, 10)
 ```
 
 ```{r case1Plot, , fig.height=4.5, fig.width=6, eval=FALSE}
-plotRegTarExpr(object, reg = "NMI")
+plotRegTarExpr(object, reg = "STAT1")
 ```
 
 
@@ -677,7 +677,7 @@ Second, download read count file and decompose into a temporary folder.
 tmpFolder = tempdir()
 tmpFile = tempfile(pattern = "GSE130567_", tmpdir = tmpFolder, fileext = ".tar")
 download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE130567&format=file", 
-              destfile = tmpFile)
+              destfile = tmpFile, mode = "wb”)
 untar(tmpFile, exdir = tmpFolder)
 files = untar(tmpFile, list = TRUE)
 filesFull = file.path(tmpFolder, files)
