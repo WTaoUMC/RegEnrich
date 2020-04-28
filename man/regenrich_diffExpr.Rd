@@ -32,7 +32,7 @@ arguments.}
 \value{
 This function returns a `RegenrichSet` object with an updated
 `resDEA` slot, which is a `DeaSet` object, and an updated `paramsIn` slot.
-See \code{\link{DeaSet}} function for more details about `DeaSet` class.
+See \code{\link{newDeaSet}} function for more details about `DeaSet` class.
 If an argument not in the above list is specified in the regenrich_diffExpr
 function, a warning or error will be raised.
 }
@@ -43,26 +43,25 @@ be performed on a `RegenrichSet` object.
 }
 \examples{
 # library(RegEnrich)
-# Initializing a 'RegenrichSet' object
+data("Lyme_GSE63085")
+data("TFs")
+
 data = log2(Lyme_GSE63085$FPKM + 1)
-pData = Lyme_GSE63085$sampleInfo
-x = apply(data, 1, sd)
-data1 = data[seq_len(2000), ]
+colData = Lyme_GSE63085$sampleInfo
 
-pData$week = as.factor(pData$week)
-pData$patientID = as.factor(sub('(\\\\d+)-(\\\\d+)', '\\\\1_\\\\2',
-                            pData$patientID))
+# Take first 2000 rows for example
+data1 = data[seq(2000), ]
 
-design = model.matrix(~0 + patientID + week,
-                      data = pData)
+design = model.matrix(~0 + patientID + week, data = colData)
+
+# Initializing a 'RegenrichSet' object
 object = RegenrichSet(expr = data1,
-                      pData = pData,
+                      colData = colData,
                       method = 'limma', minMeanExpr = 0,
                       design = design,
                       contrast = c(rep(0, ncol(design) - 1), 1),
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
-\dontrun{
 # Using the predifined parameters in the previous step
 (object = regenrich_diffExpr(object))
 
@@ -72,15 +71,14 @@ print(slot(object, 'paramsIn')$minMeanExpr)
 print(slot(object, 'paramsIn')$minMeanExpr)
 
 # Unrecognized argument 'unrecognizedArg' (Error)
-# (object = regenrich_diffExpr(object, minMeanExpr = 1,
-#                              unrecognizedArg = 23))
+# object = regenrich_diffExpr(object, minMeanExpr = 1,
+#                             unrecognizedArg = 23)
 
 # Argument not for differential expression analysis (Warning)
-print(slot(object, 'paramsIn')$networkConstruction)
-(object = regenrich_diffExpr(object, minMeanExpr = 1,
-                             networkConstruction = 'GRN'))
-print(slot(object, 'paramsIn')$networkConstruction)
-}
+# print(slot(object, 'paramsIn')$networkConstruction)
+# (object = regenrich_diffExpr(object, minMeanExpr = 1,
+#                              networkConstruction = 'GRN'))
+# print(slot(object, 'paramsIn')$networkConstruction) # not changed
 }
 \seealso{
 Initialization of a `RegenrichSet` object

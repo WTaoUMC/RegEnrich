@@ -43,54 +43,46 @@ of target lines.}
 }
 \value{
 a ggplot object.
-\if{html}{\figure{plotRegTarExpr1.png}{options: width='70\%'
-alt='Figure: plotRegTarExpr1.png'}}
-\if{latex}{\figure{plotRegTarExpr1.pdf}{options: width=6cm}}
-\if{html}{\figure{plotRegTarExpr2.png}{options: width='70\%'
-alt='Figure: plotRegTarExpr2.png'}}
-\if{latex}{\figure{plotRegTarExpr2.pdf}{options: width=6cm}}
 }
 \description{
 Plot regulator and its targets expression
 }
 \examples{
 # constructing a RegenrichSet object
-pdata = data.frame(patientID = paste0('Sample_', seq_len(50)),
-                   week = rep(c('0', '1'), each = 25),
-                   row.names = paste0('Sample_', seq_len(50)))
+colData = data.frame(patientID = paste0('Sample_', seq(50)),
+                     week = rep(c('0', '1'), each = 25),
+                     row.names = paste0('Sample_', seq(50)), 
+                     stringsAsFactors = TRUE)
 design = ~week
 reduced = ~1
 set.seed(123)
-cnts = matrix(rnbinom(n=1000*50, mu=100, size=1/0.1), ncol=50,
-               dimnames = list(paste0('gene', seq_len(1000)),
-                               rownames(pdata)))
-cnts[5,26:50] = cnts[5,26:50] + 50 # add reads to gene5 in some samples.
+cnts = matrix(as.integer(rnbinom(n=1000*50, mu=100, size=1/0.1)), ncol=50,
+              dimnames = list(paste0('gene', seq(1000)), rownames(colData)))
+
+cnts[5,26:50] = cnts[5,26:50] + 50L # add reads to gene5 in some samples.
 id = sample(31:1000, 20) # randomly select 20 rows, and assign reads.
 cnts[id,] = vapply(cnts[5,], function(x){
-  rnbinom(n = 20, size = 1/0.02, mu = x)},
-  FUN.VALUE = rep(1, 20))
+  as.integer(rnbinom(n = 20, size = 1/0.02, mu = x))},
+  FUN.VALUE = rep(1L, 20))
 
 object = RegenrichSet(expr = cnts,
-                      pData = pdata,
+                      colData = colData,
                       method = 'LRT_DESeq2', minMeanExpr = 0,
                       design = design, reduced = reduced, fitType = 'local',
                       networkConstruction = 'COEN',
                       enrichTest = 'FET',
-                      reg = paste0('gene', seq_len(30)))
+                      reg = paste0('gene', seq(30)))
 
-\dontrun{
 ## RegEnrich analysis
 object = regenrich_diffExpr(object)
+
 # Set a random softPower, otherwise it is difficult to achive a
 # scale-free network because of a randomly generated count data.
 object = regenrich_network(object, softPower = 3)
 object = regenrich_enrich(object)
 object = regenrich_rankScore(object)
-head(slot(object, 'resScore'))
-tail(slot(object, 'resScore'))
 
 ## plot expression of a regulator and its targets.
 plotRegTarExpr(object, reg = 'gene5')
 plotRegTarExpr(object, reg = 'gene27')
-}
 }

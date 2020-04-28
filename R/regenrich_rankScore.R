@@ -1,7 +1,32 @@
 #' @rdname regenrich_rankScore
 #' @export
 setGeneric("regenrich_rankScore",
-    function(object) standardGeneric("regenrich_rankScore"))
+           function(object) standardGeneric("regenrich_rankScore"))
+
+.regenrich_rankScore = function(object) {
+  enrichTest = object@paramsIn$enrichTest
+  enrichTest = match.arg(enrichTest, enrichTest)
+  
+  resEnrich = object@resEnrich
+  pFC = mcols(object)
+  
+  if (enrichTest == "FET") {
+    resFET = resEnrich@allResult
+    stopifnot(rownames(resFET) > 0)
+    res = .rankScore(resFET = resFET, pDEA = pFC[, seq(2)],
+                     fcDEA = pFC[, c(1, 3)])
+  } else if (enrichTest == "GSEA") {
+    resSEA = resEnrich@allResult
+    stopifnot(rownames(resSEA) > 0)
+    res = .rankScore(resSEA = resSEA, pDEA = pFC[, seq(2)],
+                     fcDEA = pFC[, c(1, 3)])
+  } else {
+    stop("'enrichTest' must be 'FET' or 'GSEA'.")
+  }
+  
+  object@resScore = res
+  return(object)
+}
 
 #' Regulator scoring and ranking
 #'
@@ -28,27 +53,27 @@ setGeneric("regenrich_rankScore",
 #' @export
 #' @examples
 #' # library(RegEnrich)
-#' # Initializing a 'RegenrichSet' object
+#' data("Lyme_GSE63085")
+#' data("TFs")
+#' 
 #' data = log2(Lyme_GSE63085$FPKM + 1)
-#' pData = Lyme_GSE63085$sampleInfo
-#' x = apply(data, 1, sd)
-#' data1 = data[seq_len(2000), ]
+#' colData = Lyme_GSE63085$sampleInfo
+#' 
+#' # Take first 2000 rows for example
+#' data1 = data[seq(2000), ]
 #'
-#' pData$week = as.factor(pData$week)
-#' pData$patientID = as.factor(sub('(\\d+)-(\\d+)', '\\1_\\2',
-#'                             pData$patientID))
-#'
-#' design = model.matrix(~0 + patientID + week,
-#'                       data = pData)
+#' design = model.matrix(~0 + patientID + week, data = colData)
+#' 
+#' # Initializing a 'RegenrichSet' object
 #' object = RegenrichSet(expr = data1,
-#'                       pData = pData,
+#'                       colData = colData,
 #'                       method = 'limma', minMeanExpr = 0,
 #'                       design = design,
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
-#' \dontrun{
+# \donttest{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #'
@@ -60,32 +85,9 @@ setGeneric("regenrich_rankScore",
 #'
 #' # Regulators ranking
 #' (object = regenrich_rankScore(object))
-#' }
+# }
 setMethod("regenrich_rankScore", signature = "RegenrichSet",
-    definition = function(object) {
-        enrichTest = object@paramsIn$enrichTest
-        enrichTest = match.arg(enrichTest, enrichTest)
-
-        resEnrich = object@resEnrich
-        pFC = object@resDEA@pFC
-
-        if (enrichTest == "FET") {
-            resFET = resEnrich@allResult
-            stopifnot(rownames(resFET) > 0)
-            res = .rankScore(resFET = resFET, pDEA = pFC[, seq_len(2)],
-                fcDEA = pFC[, c(1, 3)])
-        } else if (enrichTest == "GSEA") {
-            resSEA = resEnrich@allResult
-            stopifnot(rownames(resSEA) > 0)
-            res = .rankScore(resSEA = resSEA, pDEA = pFC[, seq_len(2)],
-                fcDEA = pFC[, c(1, 3)])
-        } else {
-            stop("'enrichTest' must be 'FET' or 'GSEA'.")
-        }
-
-        object@resScore = res
-        return(object)
-    })
+          definition = .regenrich_rankScore)
 
 
 
@@ -106,60 +108,59 @@ setMethod("regenrich_rankScore", signature = "RegenrichSet",
 ## (regulators), \code{negLogPDEA} (-log10(pD)),
 ## \code{negLogPEnrich} (-log10(pE)), \code{logFC}
 ## (log2(fold change)), \code{score} (RegEnrich scores),
-## @examples { \dontrun{ } }
 .rankScore = function(resFET = NULL, resSEA = NULL, pDEA, fcDEA = NULL) {
-    # stopifnot(!(is.null(resFET) | is.null(resSEA)))
-    if (!is.null(resFET)) {
-        enrichP = data.frame(reg = resFET$ID, pval = resFET$pvalue,
-            padj = resFET$p.adjust, stringsAsFactors = FALSE)
+  # stopifnot(!(is.null(resFET) | is.null(resSEA)))
+  if (!is.null(resFET)) {
+    enrichP = data.frame(reg = resFET$ID, pval = resFET$pvalue,
+                         padj = resFET$p.adjust, stringsAsFactors = FALSE)
+  } else {
+    if (!is.null(resSEA)) {
+      enrichP = data.frame(reg = resSEA$regulator, pval = resSEA$pval,
+                           padj = resSEA$padj, stringsAsFactors = FALSE)
     } else {
-        if (!is.null(resSEA)) {
-            enrichP = data.frame(reg = resSEA$regulator, pval = resSEA$pval,
-                padj = resSEA$padj, stringsAsFactors = FALSE)
-        } else {
-            stop("Either 'resFET' or 'resSEA' should be provided!")
-        }
+      stop("Either 'resFET' or 'resSEA' should be provided!")
     }
-
-    # Calculate -log10(p)
-    stopifnot(!any(duplicated(pDEA[, 1])))  # Gene duplicates are not allowed
-    id = match(enrichP$reg, pDEA[, 1])
-    negLogPDEA = -log10(pDEA[id, 2])
-    negLogPDEA[is.na(negLogPDEA)] = 0
-
-    negLogPEnrich = -log10(enrichP$pval)
-    negLogPEnrich[is.infinite(negLogPEnrich)] =
-        max(negLogPEnrich[!is.infinite(negLogPEnrich)])
-
-    # Include fold change
-    if (!is.null(fcDEA)) {
-        id = match(enrichP$reg, fcDEA[, 1])
-        logFC = fcDEA[id, 2]
+  }
+  
+  # Calculate -log10(p)
+  stopifnot(!any(duplicated(pDEA[, 1])))  # Gene duplicates are not allowed
+  id = match(enrichP$reg, pDEA[, 1])
+  negLogPDEA = -log10(pDEA[id, 2])
+  negLogPDEA[is.na(negLogPDEA)] = 0
+  
+  negLogPEnrich = -log10(enrichP$pval)
+  negLogPEnrich[is.infinite(negLogPEnrich)] =
+    max(negLogPEnrich[!is.infinite(negLogPEnrich)])
+  
+  # Include fold change
+  if (!is.null(fcDEA)) {
+    id = match(enrichP$reg, fcDEA[, 1])
+    logFC = fcDEA[id, 2]
+  } else {
+    logFC = Inf
+  }
+  
+  # Calculate scores
+  normFun = function(x) {
+    mx = max(x[is.finite(x)])
+    mnx = min(x[is.finite(x)])
+    if ((mx - mnx) == 0) {
+      return(rep(0, length(x)))
     } else {
-        logFC = Inf
+      normx = (x - mnx)/(mx - mnx)
+      normx[is.infinite(normx)] = 1
+      return(normx)
     }
-
-    # Calculate scores
-    normFun = function(x) {
-        mx = max(x[is.finite(x)])
-        mnx = min(x[is.finite(x)])
-        if ((mx - mnx) == 0) {
-            return(rep(0, length(x)))
-        } else {
-            normx = (x - mnx)/(mx - mnx)
-            normx[is.infinite(normx)] = 1
-            return(normx)
-        }
-    }
-    score = normFun(negLogPDEA) + normFun(negLogPEnrich)
-
-    res = data.frame(reg = enrichP$reg, negLogPDEA = negLogPDEA,
-        negLogPEnrich = negLogPEnrich, logFC = logFC, score = score,
-        stringsAsFactors = FALSE)
-    if (nrow(res) > 0) {
-        res = sortDataframe(res, "score", decreasing = TRUE)
-        rownames(res) = seq_len(nrow(res))
-    }
-    res = structure(res, class = c("regEnrichScore", "data.frame"))
-    return(res)
+  }
+  score = normFun(negLogPDEA) + normFun(negLogPEnrich)
+  
+  res = newScore(reg = enrichP$reg, negLogPDEA = negLogPDEA,
+                 negLogPEnrich = negLogPEnrich, logFC = logFC, 
+                 score = score)
+  if (nrow(res) > 0) {
+    res = arrange(res, desc(score))
+    rownames(res) = seq(nrow(res))
+  }
+  res = as(res, "Score")
+  return(res)
 }

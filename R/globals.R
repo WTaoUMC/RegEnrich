@@ -1,5 +1,5 @@
 utils::globalVariables(names = c('TFs', 'targetGeneIdx0', 'to.gene',
-    "mse", 'r'),
+    "mse", 'r', 'padj', 'ES', 'from.gene', 'weight'),
     package = 'RegEnrich')
 
 

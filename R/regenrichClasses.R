@@ -1,57 +1,140 @@
-
 #' DeaSet class
-#'
-#' The `DeaSet` object is to store differnetial expression analysis
-#' results, for further enrichment and regulator ranking.
-#' @slot pFC a data frame of three columns, i.e. gene (gene names/IDs),
-#' p (differential p values), and logFC (log2 expression fold changes).
-#' @slot fullRes a full result table from differential analysis. The
-#' contents in this table varies depending on the differential analysis
-#' methods.
-#' @slot fit either NULL or a linear model object from differential analysis.
-#' @return an object of DeaSet class.
-#' @import methods
+#' 
+#' 
+#' @slot colData DataFrame object, sample information, the row name is 
+#' corresponding to the column names of expression matrix in the \code{assays} 
+#' slot.
+#' @slot assays SimpleList object of one/multiple matrix/matrices,
+#' this is the slot for storing the expression data after filtering
+#' (and after Variance Stabilizing Transformation, i.e. VST, if the
+#' differential analysis method is 'Wald_DESeq2' or 'LRT_DESeq2'). And the 
+#' expression matrix is used for network inference and plotting.
+#' @slot NAMES row names of expression data in \code{assays} slot and 
+#' \code{elementMetadata} slot.
+#' @slot elementMetadata feature information, contains at least a DataFrame 
+#' of three columns, i.e. `gene`, `p` and `logFC`, which stores gene names/IDs,
+#' differential p values and log2 expression fold changes, respectively.
+#' @slot metadata DataFrame object, information of feature columns.
+#' @slot assayRaw a slot for saving the raw expression data.
+#' @import SummarizedExperiment
 #' @export
-setClass("DeaSet", slots = c(pFC = "data.frame", fullRes = "ANY",
-    fit = "ANY"), prototype = list(pFC = data.frame(gene = character(0),
-    p = numeric(0), logFC = numeric(0)), fullRes = NULL, fit = NULL))
+#' @examples 
+# \donttest{
+#' nrows = 100
+#' ncols = 6
+#' counts = matrix(rnbinom(nrows * ncols, size = 2, mu = 500),
+#'                 nrow = nrows)
+#' assays = SimpleList(assayData = counts)
+#' 
+#' colData = DataFrame(Condition = rep(c("treatment", "ctrl"), 3),
+#'                     row.names=LETTERS[1:6])
+#' geneNames = sprintf("G%03s", seq(nrows))
+#' elementMetadata = DataFrame(gene = geneNames,
+#'                             p = numeric(nrows),
+#'                             logFC = numeric(nrows))
+#' 
+#' ds = new("DeaSet",
+#'          assays = Assays(assays),
+#'          colData = colData,
+#'          assayRaw = counts,
+#'          elementMetadata = elementMetadata,
+#'          NAMES = geneNames)
+#' ds
+# }
+#' 
+#' 
+setClass(Class = "DeaSet",
+         contains = "SummarizedExperiment",
+         representation = representation(
+           assayRaw = "matrix"), 
+         prototype = prototype(assayRaw = matrix(nrow = 0, ncol = 0),
+                               elementMetadata = DataFrame(gene = character(0),
+                                                           p = numeric(0),
+                                                           logFC = numeric(0))), 
+         validity = function(object){
+           error = character()
+           if(!all(c("gene", "p", "logFC") %in% colnames(mcols(object)))){
+             error = c(error, paste0("mcols(object) must contain 'gene', ", 
+                                     "'p', 'logFC' columns.\n"))
+           }
+           return(if(length(error) == 0) TRUE else error)
+         })
 
 #' DeaSet object creator
-#'
-#' This is `DeaSet` object creator function.
-#' @param pFC a data frame of three columns, i.e. gene (gene names/IDs),
-#' p (differential p values), and logFC (log2 expression fold changes).
-#' @param fullRes a full result table from differential analysis. The
-#' contents in this table varies depending on the differential analysis
-#' methods.
-#' @param fit either NULL or a linear model object from differential analysis.
-#' @return an object of DeaSet class.
+#' 
+#' @param assayRaw A matrix of gene expression data. This can be the same
+#' as the matrix-like element in \code{assays} parameter.
+#' @param rowData A DataFrame object describing the rows.
+#' @param assays A list or SimpleList of matrix-like element, 
+#' or a matrix-like object. The matrix-like element can be the same
+#' as \code{assayRaw} parameter.
+#' @param colData A DataFrame describing the sample information.
+#' @param metadata An optional list of arbitrary content describing the
+#' overall experiment.
+#' @return A DeaSet object.
+#' 
 #' @export
 #' @examples
-#' pFC = data.frame(gene = paste0('gene', seq_len(10)),
-#'                  p = seq(0.01, 0.3, length.out = 10),
-#'                  logFC = rnorm(10))
-#' fullRes = NULL
-#' fit = NULL
-#' dSet = DeaSet(pFC, fullRes, fit)
-DeaSet = function(pFC, fullRes, fit) {
-    stopifnot(is.data.frame(pFC))
-    new("DeaSet", pFC = pFC, fullRes = fullRes, fit = fit)
+#' # Empty DeaSet object
+#' newDeaSet()
+#' 
+#' # 100 * 6 DeaSet object
+#' nrows = 100
+#' ncols = 6
+#' counts = matrix(rnbinom(nrows * ncols, size = 2, mu = 500),
+#'                 nrow = nrows)
+#' assays = SimpleList(counts=counts)
+#' 
+#' colData = DataFrame(Condition = rep(c("treatment", "ctrl"), 3),
+#'                     row.names=LETTERS[1:6])
+#' geneNames = sprintf("G%03s", seq(nrows))
+#' elementMetadata = DataFrame(gene = geneNames,
+#'                             p = numeric(nrows),
+#'                             logFC = numeric(nrows))
+#' newDeaSet(assayRaw = counts, 
+#'           rowData = elementMetadata,
+#'           assays = SimpleList(assayData = counts),
+#'           colData = colData)
+newDeaSet = function(assayRaw = matrix(nrow = 0, ncol = 0),
+                     rowData = NULL,
+                     assays = SimpleList(), 
+                     colData = DataFrame(), 
+                     metadata = list()){
+  if(is.null(rowData)){
+    rowData = DataFrame(gene = character(0),
+                        p = numeric(0),
+                        logFC = numeric(0))
+  }
+  se = SummarizedExperiment(assays = assays, 
+                            rowData = rowData,
+                            colData = colData,
+                            metadata = metadata)
+  new("DeaSet", 
+      assayRaw = assayRaw, 
+      assays = Assays(assays),
+      elementMetadata = rowData,
+      colData = colData,
+      NAMES = se@NAMES,
+      metadata = metadata)
 }
+
 
 #' TopNetwork class
 #'
 #' The `TopNetwork` object is to store either a full network (the percentage
 #' of top edges is 100%) or a sub-network (with percentage of top edges
 #' between 0 to 10).
-#' @slot net list, in which the names of elements are regulators,
-#' and the elements are targets of the regulators indicated by the
-#' element name.
-#' @slot netTable data frame. A table showing regulator-target
-#' relationship. It contains 3 columns, representing 'from.gene'
-#' ('regulators'), 'to.gene' ('targets') and 'weight', respectively.
-#' @slot validReg vector, a set of valid regulators in the network.
-#' @slot tarReg list, in which the names of elements are targets,
+#' @slot element tibble, the pool of targets in the network.
+#' @slot set tibble, the pool of valid regulators.
+#' @slot elementset tibble, regulator-target edges with edge weights.
+# @slot net list, in which the names of elements are regulators,
+# and the elements are targets of the regulators indicated by the
+# element name.
+# @slot netTable data frame. A table showing regulator-target
+# relationship. It contains 3 columns, representing 'from.gene'
+# ('regulators'), 'to.gene' ('targets') and 'weight', respectively.
+# @slot validReg vector, a set of valid regulators in the network.
+# @slot tarReg list, in which the names of elements are targets,
 #' and the elements are regulators of the targets indicated by the
 #' element name.
 #' @slot directed logical, whether the network is directed.
@@ -61,31 +144,35 @@ DeaSet = function(pFC, fullRes, fit) {
 #' (a network provided by the user).
 #' @slot percent numeric, what percentage of the top edges are remained.
 #' The value must be between 0 (excluding) and 100 (including).
+#' @slot active character, which data table is activated, the default is 
+#' "elementset".
+#' @importClassesFrom BiocSet BiocSet
 #' @export
-setClass("TopNetwork", slots = c(net = "list", netTable = "data.frame",
-    validReg = "vector", tarReg = "list", directed = "logical",
-    networkConstruction = "character", percent = "numeric"),
-    prototype = list(net = list(),
-        netTable = data.frame(from.gene = character(),
-        to.gene = character(), weight = numeric(), stringsAsFactors = FALSE),
-        validReg = c(), tarReg = list(), directed = TRUE,
-        networkConstruction = "new",
-        percent = 5))
+setClass(Class = "TopNetwork", 
+         contains = "BiocSet",
+         representation = representation(
+           directed = "logical",
+           networkConstruction = "character", 
+           percent = "numeric"),
+         prototype = prototype(# net = list(),
+           directed = TRUE,
+           networkConstruction = "new",
+           percent = 100, 
+           active = "elementset"), 
+         validity = function(object) {
+           if (object@percent > 100 || object@percent <= 0) {
+             "@percent must be between 0 (excluding) and 100 (including)"
+           } else {
+             if (length(object@networkConstruction) != 1 ||
+                 !object@networkConstruction %in%
+                 c("COEN", "GRN", "new")) {
+               "@networkConstruction must be one of 'COEN', 'GRN', and 'new'"
+             } else {
+               TRUE
+             }
+           }
+         })
 
-
-setValidity("TopNetwork", function(object) {
-    if (object@percent > 100 || object@percent <= 0) {
-        "@percent must be between 0 (excluding) and 100 (including)"
-    } else {
-        if (length(object@networkConstruction) != 1 ||
-            !object@networkConstruction %in%
-            c("COEN", "GRN", "new")) {
-            "@networkConstruction must be one of 'COEN', 'GRN', and 'new'"
-        } else {
-            TRUE
-        }
-    }
-})
 
 #' TopNetwork object creator
 #'
@@ -104,69 +191,73 @@ setValidity("TopNetwork", function(object) {
 #' on the expression data.
 #' @param percent the percentage of edges in the original whole network.
 #' Default is 100, meaning 100\% edges in whole network.
-#' @param extendObject logical, whether net and tarReg will be constructed.
-#' Default is FALSE, which can save memory. This can be set FALSE for
-#' construting 'network' slot
-#' in RegenrichSet objects, but must be set TRUE when construting
-#' 'topNetP' slot.
+# @param extendObject logical, whether net and tarReg will be constructed.
+# Default is FALSE, which can save memory. This can be set FALSE for
+# construting 'network' slot
+# in RegenrichSet objects, but must be set TRUE when construting
+# 'topNetP' slot.
 #' @return an object of topNetwork class.
 #' @include globals.R
+#' @import tibble
 #' @export
 #' @examples
-#' edge = data.frame(from = rep(TFs$TF_name[seq_len(3)], seq_len(3)),
+#' data(TFs)
+#' edge = data.frame(from = rep(TFs$TF_name[seq(3)], seq(3)),
 #'                   to = TFs$TF_name[11:16], weight = 0.1*(6:1))
-#' object = TopNetwork(edge, networkConstruction = 'new', percent = 100)
-TopNetwork = function(networkEdgeTable, reg = TFs$TF_name, directed = TRUE,
-    networkConstruction = c("new", "COEN", "GRN"), percent = 100,
-    extendObject = FALSE) {
-    stopifnot(is.data.frame(networkEdgeTable) && ncol(networkEdgeTable) ==
-        3)
-    if (nrow(networkEdgeTable) == 0) {
-        stop("The number of rows in networkEdgeTable must be not 0.")
-    }
-    if (!is.numeric(networkEdgeTable[, 3])) {
-        stop("The third column ('weight') of networkEdgeTable must be numeric.")
-    }
-    colnames(networkEdgeTable) = c("from.gene", "to.gene", "weight")
-    # retain edges which start from regulators
-    networkEdgeTable = networkEdgeTable[networkEdgeTable$from.gene %in%
-        reg, , drop = FALSE]
-    reg = unique(as.character(networkEdgeTable$from.gene))
-
-    # remove duplicated edges
-    networkEdgeTable = networkEdgeTable[!duplicated(networkEdgeTable[,
-        seq_len(2)]), , drop = FALSE]
-
-    # convert potential factor to character
-    networkEdgeTable$from.gene = as.character(networkEdgeTable$from.gene)
-    networkEdgeTable$to.gene = as.character(networkEdgeTable$to.gene)
-
-    networkConstruction = match.arg(networkConstruction)
-
-
-    if (extendObject) {
-        net = lapply(stats::setNames(reg, reg), function(x) {
-            networkEdgeTable[networkEdgeTable$from.gene == x,
-                "to.gene"]
-        })
-
-        .tarReg = function(nt = networkEdgeTable) {
-            nt = nt[, 2:1]
-            tar = unique(nt[, "to.gene"])
-            res = lapply(stats::setNames(tar, tar), function(x) {
-                nt[nt$to.gene == x, "from.gene"]
-            })
-            return(res)
-        }
-        tarReg = .tarReg(networkEdgeTable)
-    } else {
-        net = list()
-        tarReg = list()
-    }
-
-    new("TopNetwork", net = net, netTable = networkEdgeTable,
-        validReg = reg, tarReg = tarReg, directed = directed,
-        networkConstruction = networkConstruction, percent = percent)
+#' object = newTopNetwork(edge, networkConstruction = 'new', percent = 100)
+#' object
+#' str(object)
+newTopNetwork = function(networkEdgeTable, 
+                      reg = "", 
+                      directed = TRUE,
+                      networkConstruction = c("new", "COEN", "GRN"), 
+                      percent = 100) {
+  if(missing(networkEdgeTable)){
+    networkEdgeTable = data.frame(from.gene = character(), 
+                                  to.gene = character(), 
+                                  weight = numeric())
+  }
+  networkEdgeTable = as.data.frame(networkEdgeTable)
+  stopifnot(is.data.frame(networkEdgeTable) && ncol(networkEdgeTable) == 3)
+  if (!is.numeric(networkEdgeTable[, 3])) {
+    stop("The third column ('weight') of networkEdgeTable must be numeric.")
+  }
+  networkConstruction = match.arg(networkConstruction)
+  
+  colnames(networkEdgeTable) = c("from.gene", "to.gene", "weight")
+  
+  # retain edges which start from regulators
+  networkEdgeTable = networkEdgeTable[networkEdgeTable$from.gene %in%
+                                        reg, , drop = FALSE]
+  reg = unique(as.character(networkEdgeTable$from.gene))
+  
+  # remove duplicated edges
+  duID = duplicated(networkEdgeTable[, seq(2)])
+  networkEdgeTable = networkEdgeTable[!duID, , drop = FALSE]
+  
+  # convert potential factor to character
+  networkEdgeTable$from.gene = as.character(networkEdgeTable$from.gene)
+  networkEdgeTable$to.gene = as.character(networkEdgeTable$to.gene)
+  
+  as_elementset = utils::getFromNamespace("subclass_tbl_elementset_base", 
+                                          "BiocSet")
+  .tbl_element = utils::getFromNamespace(".tbl_element", "BiocSet")
+  .tbl_set = utils::getFromNamespace(".tbl_set", "BiocSet")
+  
+  elementset = tibble(set = networkEdgeTable$from.gene,
+                      element = networkEdgeTable$to.gene,
+                      weight = networkEdgeTable$weight) %>% 
+    as_elementset("tbl_elementset")
+  
+  new(Class = "TopNetwork", 
+      #net = net, 
+      elementset = elementset,
+      set = .tbl_set(elementset), 
+      element = .tbl_element(elementset), 
+      #tarReg = tarReg, 
+      directed = directed,
+      networkConstruction = networkConstruction, 
+      percent = percent)
 }
 
 
@@ -184,73 +275,122 @@ TopNetwork = function(networkEdgeTable, reg = TFs$TF_name, directed = TRUE,
 #' the names of the scores are the genes to perform enrichment analysis.
 #' Here the scores are p-value of each gene.
 #' @slot type character indicating enrichment method, either 'FET' or 'GSEA'.
+#' @import tibble
 #' @export
-setClass("Enrich", slots = c(topResult = "data.frame", allResult = "data.frame",
-    gene = "vector", namedScores = "vector", type = "character"  # 'FET'/'SEA'
-))
+setClass(Class = "Enrich", 
+         representation = representation(topResult = "tbl_df", 
+                                         allResult = "tbl_df", 
+                                         gene = "vector", 
+                                         namedScores = "vector", 
+                                         type = "character"  # 'FET'/'SEA'
+         ), prototype = prototype(topResult = tibble(), 
+                                  allResult = tibble(), 
+                                  gene = character(), 
+                                  namedScores = character(), 
+                                  type = "FET"
+         ))
+
+# Enrich object creator
+newEnrich = function(topResult = tibble(), 
+                     allResult = tibble(), 
+                     gene = character(), 
+                     namedScores = character(), 
+                     type = "FET"){
+  new("Enrich", topResult = topResult, allResult = allResult,
+      gene = gene, namedScores = namedScores, type = type)
+}
+
+
+#' Score class
+#' 
+#' `Score` class inherits tibble ("tbl"). The objects of `Score` class 
+#' are to store information of regulator ranking scores.
+#' @slot names character vector, containing "reg", "negLogPDEA",
+#' "negLogPEnrich", "logFC", and "score".
+#' @slot .Data a list of length 5, each elements corresponds to the 
+#' \code{names} slots.
+#' @slot row.names character, regulators corresponding to \code{.Data} slot.
+#' @slot .S3Class character vector, containing "tbl_df", "tbl", "data.frame",
+#' indicating the classes that `Score` class inherits. 
+#' @rdname Score
+#' @export
+setClass(Class = "Score", contains = class(tibble()))
+
+#' Score object creator
+#' @param reg character, regulator IDs.
+#' @param negLogPDEA numeric, -log(p_DEA).
+#' @param negLogPEnrich numeric, -log(p_Enrich).
+#' @param logFC numeric, log2 fold change.
+#' @param score numeric, RegEnrich ranking score.
+#' @return newScore function returns a \code{Score} object.
+#' @rdname Score
+#' @export 
+#' @examples 
+#' newScore()
+#' newScore(letters[1:5], 1:5, 1:5, -2:2, seq(2, 1, len = 5))
+newScore = function(reg = character(), 
+                    negLogPDEA = numeric(),
+                    negLogPEnrich = numeric(), 
+                    logFC = numeric(), 
+                    score = numeric()){
+  new("Score", tibble(reg, negLogPDEA, negLogPEnrich, logFC, score))
+}
 
 
 
 #' RegenrichSet class
-#'
-#' The `RegenrichSet` is the fundamental class that RegEnrich package
-#' is working with.\cr
-#' It contains two slots storing raw expression data
-#' (@@rawData) and sample pheno data (@@phenoData), which remain not
-#' changed in the whole RegEnrich analysis. \cr
-#' In addition, it has two slots for storing input (@@paramsIn) and
-#' output (@@paramsOut) parameters. \cr
-#' Lastly, there are 6 slots (@@assayData, @@resDEA
-#' , @@network, @@topNetP, @@resEnrich, @@resScore) storing different
-#' parts of results during RegEnrich analysis.
-#'
-#' @slot rawData the raw expression data. This slot is used for
-#' differential expression analysis, meanwhile generating @@assayData
-#' slot.
-#' @slot phenoData data frame indicating sample information. Each row
-#' represent a sample and each column represent a feature of samples.
-#' @slot assayData a slot for saving the expression data after filtering
-#' (and after Variance Stabilizing Transformation, i.e. VST, if the
-#' differential analysis method is 'Wald_DESeq2' or 'LRT_DESeq2'). This
-#' slot is used for network inference and plotting.
-#' @slot resDEA a slot for saving results after differential analysis.
-#' After differential expression analysis, a \code{\link{DeaSet}}
-#' object is assigned to this slot. Default is NULL.
-#' @slot topNetP a slot for saving top network edges.
-#' After regulator-target network inference, a \code{\link{TopNetwork-class}}
+#' @description The \code{RegenrichSet} is the fundamental class that RegEnrich
+#' package is working with.
+#' @slot assayRaw \code{matrix}, the initial raw expression data. 
+#' @slot colData \code{DataFrame} object, indicating sample information. 
+#' Each row represent a sample and each column represent a feature of samples.
+#' @slot assays \code{SimpleList} object, containing the expression data after 
+#' filtering (and after Variance Stabilizing Transformation, i.e. VST, if the
+#' differential analysis method is 'Wald_DESeq2' or 'LRT_DESeq2'). 
+#' @slot elementMetadata DataFrame object, a slot for saving results by 
+#' differential expression analysis, containing at least three 
+#' columns:`gene`, `p` and `logFC`.
+#' @slot topNetwork \code{TopNetwork} object, a slot for saving top network 
+#' edges. After regulator-target network inference, 
+#' a \code{\link{TopNetwork-class}}
 #' object is assigned to this slot, containing only top ranked edges
 #' in the full network. Default is NULL.
-#' @slot resEnrich a slot for saving enrichment analysis by Fisher's
-#' exact test (FET) or gene set enrichment analysis (GSEA). It is a
-#' \code{\link{Enrich-class}} object.
-#' @slot resScore a slot for saving regulator ranking results, which is
-#' a `regEnrichScore` (also `data.frame`) object. It contains five columns,
+#' @slot resEnrich \code{Enrich} object, a slot for saving enrichment analysis 
+#' either by Fisher's exact test (FET) or gene set enrichment analysis (GSEA). 
+#' @slot resScore \code{Score} object, a slot for saving regulator ranking 
+#' results. It contains five components,
 #' which are 'reg' (regulator), 'negLogPDEA' (-log10(p values of differential
 #' expression analysis)), 'negLogPEnrich' (-log10(p values of enrichment
-#' analysis),
-#' 'logFC' (log2 fold changes), and 'score' (RegEnrich ranking score).
+#' analysis)), 'logFC' (log2 fold changes), and 'score' (RegEnrich ranking 
+#' score).
 #' @slot paramsIn list. The parameters used in the whole RegEnrich
 #' analysis. This slot can be updated by respecifying arguments in each step of
 #' RegEnrich analysis.
-#' @slot paramsOut a list of four elements: method (differential expression
-#' method), network (regulator-target network construction method),
+#' @slot paramsOut a list of four elements: DeaMethod (differential expression
+#' method), networkType (regulator-target network construction method),
 #' percent (what percentage of edges from the full network is used),
 #' and enrichTest (enrichment method). By default, each element is NULL.
-#' @slot network a slot for saving a full network.
-#' Before performing network inference, this slot is NULL (default),
-#' and after network inference, a \code{\link{TopNetwork-class}} object is
-#' assigned to this slot.
-#'
+#' @slot network \code{TopNetwork} object, a slot for saving a full network.
 #' @export
-#'
-setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
-    assayData = "matrix", resDEA = "ANY", topNetP = "ANY", resEnrich = "ANY",
-    resScore = "ANY", paramsIn = "list", paramsOut = "ANY", network = "ANY"),
-    prototype = list(rawData = NULL, phenoData = data.frame(),
-        assayData = matrix(), resDEA = NULL, topNetP = NULL,
-        resEnrich = NULL, resScore = NULL, paramsIn = list(),
-        paramsOut = list(method = NULL, network = NULL, percent = NULL,
-            enrichTest = NULL), network = NULL))
+setClass(Class = "RegenrichSet", contains = "DeaSet",
+         representation = representation(
+           topNetwork = "TopNetwork", 
+           resEnrich = "Enrich",
+           resScore = "Score", 
+           paramsIn = "list", 
+           paramsOut = "list", 
+           network = "TopNetwork"),
+         prototype = prototype(
+           topNetwork = newTopNetwork(),
+           resEnrich = newEnrich(), 
+           resScore = newScore(), 
+           paramsIn = list(),
+           paramsOut = list(DeaMethod = NULL, 
+                            networkType = NULL, 
+                            percent = NULL,
+                            enrichTest = NULL), 
+           network = newTopNetwork()))
+
 
 
 #' RegenrichSet object creator
@@ -258,7 +398,7 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #' This is `RegenrichSet` object creator function.
 #' There are four types of parameters in this function.\cr
 #' First, parameters to provide raw data and sample information;\cr
-#' `expr` and `pData`.\cr\cr
+#' `expr` and `colData`.\cr\cr
 #' Second, parameters to perform differential expression analysis;\cr
 #' `method`, `minMeanExpr`, `design`, `reduced`, `contrast`,
 #' `coef`, `name`, `fitType`, `sfType`, `betaPrior`, `minReplicatesForReplace`,
@@ -281,9 +421,11 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #' 'LRT_DESeq2'}
 #' only non-negative integer matrix (read counts by RNA sequencing) is
 #' accepted.
-#' @param pData data.frame, sample phenotype data. The rows of pData must
-#' correspond
-#' to the columns of expr.
+#' @param colData data frame, sample phenotype data. 
+#' The rows of colData must correspond to the columns of expr.
+#' @param rowData NULL or data frame, information of each row/gene. 
+#' Default is NULL, which will generate a DataFrame of three columns, i.e.,
+#' "gene", "p", and "logFC".
 #' @param method either 'Wald_DESeq2', 'LRT_DESeq2', 'limma', or 'LRT_LM'
 #' for the differential expression analysis.
 #' \itemize{
@@ -307,9 +449,9 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #' 'LRT_LM', the design is the full model formula/matrix. For method =
 #' 'limma',
 #' and if design is a formula, the model matrix is constructed using
-#' model.matrix(design, pData), so the name of each term in the design
+#' model.matrix(design, colData), so the name of each term in the design
 #' formula must
-#' be included in the column names of `pData`.
+#' be included in the column names of `colData`.
 #' @param reduced The argument is used only when method = 'LRT_DESeq2' or
 #' 'LRT_LM', it is a reduced formula/matrix to compare against.
 #' If the design is a model matrix, `reduced` must also be a model matrix.
@@ -332,9 +474,9 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #' specifies the
 #' names of the fold changes for the denominator. These names should be
 #' elements
-#' of \code{getResultsNames(design, pData)};
+#' of \code{getResultsNames(design, colData)};
 #' \item a numeric contrast vector with one element for each element in
-#' \code{getResultsNames(design, pData)}.\cr
+#' \code{getResultsNames(design, colData)}.\cr
 #' }
 #'
 #' When method = 'limma', It can be one of following two formats:
@@ -362,7 +504,7 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #' individual
 #' effects or for individual interaction terms. The value provided to
 #' name must
-#' be an element of \code{getResultsNames(design, pData)}.
+#' be an element of \code{getResultsNames(design, colData)}.
 #'
 #' @param fitType either 'parametric', 'local', or 'mean' for the type of
 #' fitting
@@ -596,118 +738,159 @@ setClass("RegenrichSet", slots = c(rawData = "ANY", phenoData = "data.frame",
 #' @return an object of RegenrichSet class.
 #' @import WGCNA
 #' @import BiocParallel
+# @importFrom S4Vectors DataFrame
 #' @include globals.R
 #' @export
 #' @examples
 #' # library(RegEnrich)
-#' # Initializing a 'RegenrichSet' object
+#' data("Lyme_GSE63085")
+#' data("TFs")
+#' 
 #' data = log2(Lyme_GSE63085$FPKM + 1)
-#' pData = Lyme_GSE63085$sampleInfo
-#' x = apply(data, 1, sd)
-#' data1 = data[seq_len(2000), ]
+#' colData = Lyme_GSE63085$sampleInfo
+#' 
+#' # Take first 2000 rows for example
+#' data1 = data[seq(2000), ]
 #'
-#' pData$week = as.factor(pData$week)
-#' pData$patientID = as.factor(sub('(\\d+)-(\\d+)', '\\1_\\2',
-#'                             pData$patientID))
-#'
-#' design = model.matrix(~0 + patientID + week,
-#'                       data = pData)
+#' design = model.matrix(~0 + patientID + week, data = colData)
+#' 
+#' # Initializing a 'RegenrichSet' object
 #' object = RegenrichSet(expr = data1,
-#'                       pData = pData,
+#'                       colData = colData,
 #'                       method = 'limma', minMeanExpr = 0,
 #'                       design = design,
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
-
-RegenrichSet = function(expr, pData, method = c("Wald_DESeq2",
-    "LRT_DESeq2", "limma", "LRT_LM"), minMeanExpr = NULL, design,
-    reduced, contrast, coef = NULL, name, fitType = c("parametric",
-        "local", "mean"), sfType = c("ratio", "poscounts", "iterate"),
-    betaPrior, minReplicatesForReplace = 7, useT = FALSE, minmu = 0.5,
-    parallel = FALSE, BPPARAM = bpparam(), altHypothesis = c("greaterAbs",
-        "lessAbs", "greater", "less"), listValues = c(1, -1),
-    cooksCutoff, independentFiltering = TRUE, alpha = 0.1, filter,
-    theta, filterFun, addMLE = FALSE, blind = FALSE, ndups = 1,
-    spacing = 1, block = NULL, correlation, weights = NULL, proportion = 0.01,
-    stdev.coef.lim = c(0.1, 4), trend = FALSE, robust = FALSE,
-    winsor.tail.p = c(0.05, 0.1), reg = TFs$TF_name,
-    networkConstruction = c("COEN",
-        "GRN", "new"), topNetPercent = 5, directed = FALSE, rowSample = FALSE,
-    softPower = NULL, networkType = "unsigned", TOMDenom = "min",
-    RsquaredCut = 0.85, edgeThreshold = NULL, K = "sqrt", nbTrees = 1000,
-    importanceMeasure = "IncNodePurity", trace = FALSE,
-    minR = 0.3, enrichTest = c("FET", "GSEA"), namedScoresCutoffs = 0.05,
-    minSize = 5, maxSize = 5000, pvalueCutoff = 0.05, qvalueCutoff = 0.2,
-    regAltName = NULL, universe = NULL, nperm = 10000) {
-
-    if (missing(expr) || missing(pData)) {
-        stop("Must provide both 'expr' and 'pData'")
+#' object
+RegenrichSet = function(expr, colData, rowData = NULL, 
+                        method = c("Wald_DESeq2", "LRT_DESeq2", 
+                                   "limma", "LRT_LM"), 
+                        minMeanExpr = NULL, 
+                        design, reduced, contrast, 
+                        coef = NULL, name, 
+                        fitType = c("parametric", "local", "mean"), 
+                        sfType = c("ratio", "poscounts", "iterate"),
+                        betaPrior, 
+                        minReplicatesForReplace = 7, 
+                        useT = FALSE, minmu = 0.5,
+                        parallel = FALSE, 
+                        BPPARAM = bpparam(), 
+                        altHypothesis = c("greaterAbs", "lessAbs", 
+                                          "greater", "less"), 
+                        listValues = c(1, -1),
+                        cooksCutoff, independentFiltering = TRUE, 
+                        alpha = 0.1, filter,
+                        theta, filterFun, addMLE = FALSE, 
+                        blind = FALSE, ndups = 1,
+                        spacing = 1, block = NULL, correlation, 
+                        weights = NULL, proportion = 0.01,
+                        stdev.coef.lim = c(0.1, 4), 
+                        trend = FALSE, robust = FALSE,
+                        winsor.tail.p = c(0.05, 0.1), reg = TFs$TF_name,
+                        networkConstruction = c("COEN", "GRN", "new"), 
+                        topNetPercent = 5, directed = FALSE, rowSample = FALSE,
+                        softPower = NULL, networkType = "unsigned", 
+                        TOMDenom = "min",
+                        RsquaredCut = 0.85, edgeThreshold = NULL, 
+                        K = "sqrt", nbTrees = 1000,
+                        importanceMeasure = "IncNodePurity", trace = FALSE,
+                        minR = 0.3, enrichTest = c("FET", "GSEA"), 
+                        namedScoresCutoffs = 0.05,
+                        minSize = 5, maxSize = 5000, 
+                        pvalueCutoff = 0.05, qvalueCutoff = 0.2,
+                        regAltName = NULL, universe = NULL, nperm = 10000) {
+  
+  if (missing(expr) || missing(colData)) {
+    stop("Must provide both 'expr' and 'colData'")
+  }
+  
+  if (ncol(expr) != nrow(colData)) {
+    stop("The number of columns in 'expr' must be ",
+         "the same as the number of rows in 'colData'")
+    if (all(colnames(expr) != rownames(colData))) {
+      stop("The columns of 'expr' must match the rows of 'colData'")
     }
-
-    if (ncol(expr) != nrow(pData)) {
-        stop("The number of columns in 'expr' must be ",
-            "the same as the number of rows in 'pData'")
-        if (all(colnames(expr) != rownames(pData))) {
-            stop("The columns of 'expr' must match the rows of 'pData'")
-        }
-    }
-
-    if (!is.null(minMeanExpr) && is.numeric(minMeanExpr)) {
-        exprHi = as.matrix(expr[rowMeans(expr) > minMeanExpr,
-            , drop = FALSE])
+  }
+  
+  se = SummarizedExperiment(assays = SimpleList(assayData = as.matrix(expr)), 
+                            rowData = rowData, 
+                            colData = as(colData, "DataFrame"))
+  
+  seHi = if (!is.null(minMeanExpr) && is.numeric(minMeanExpr)) {
+    se[rowMeans(assay(se)) > minMeanExpr,]
+  } else se
+  
+  rowN = nrow(seHi)
+  NAMES = rownames(seHi)
+  if(ncol(rowData(seHi)) != 0){
+    if(all(c("gene", "p", "logFC") %in% colnames(rowData))){
+      rowData = rowData(seHi)
     } else {
-        exprHi = as.matrix(expr)
+      stop("rowData must be either NULL or a data frame containing at",
+           "least the following columns: \n  'gene', 'p', 'logFC'")
     }
-
-    pData = as.data.frame(pData)
-
-    resDEA = NULL
-    network = topNetP = resEnrich = resScore = NULL
-    paramsOut = list(method = NULL, network = NULL, enrichTest = NULL,
-        percent = NULL)
-
-    object = new(Class = "RegenrichSet", rawData = expr, assayData = exprHi,
-        phenoData = pData, paramsIn = list(method = method,
-                minMeanExpr = minMeanExpr,
-            design = if (missing(design)) substitute() else design,
-            reduced = if (missing(reduced)) substitute() else reduced,
-            contrast = if (missing(contrast)) substitute() else contrast,
-            coef = if (missing(coef)) substitute() else coef,
-            name = if (missing(name)) substitute() else name,
-            fitType = fitType, sfType = sfType,
-            betaPrior = if (missing(betaPrior)) substitute() else betaPrior,
-            minReplicatesForReplace = minReplicatesForReplace,
-            useT = useT, minmu = minmu, parallel = parallel,
-            BPPARAM = BPPARAM, altHypothesis = altHypothesis,
-            listValues = listValues,
-            cooksCutoff = if (missing(cooksCutoff)) {
-                substitute()} else cooksCutoff,
-            independentFiltering = independentFiltering, alpha = alpha,
-            filter = if (missing(filter)) substitute() else filter,
-            theta = if (missing(theta)) substitute() else theta,
-            filterFun = if (missing(filterFun)) substitute() else filterFun,
-            addMLE = addMLE, blind = blind, ndups = ndups, spacing = spacing,
-            block = block,
-            correlation = if (missing(correlation)) {
-                substitute()} else correlation,
-            weights = weights, proportion = proportion,
-            stdev.coef.lim = stdev.coef.lim,
-            trend = trend, robust = robust, winsor.tail.p = winsor.tail.p,
-            reg = reg, rowSample = rowSample, softPower = softPower,
-            networkConstruction = networkConstruction,
-            networkType = networkType,
-            TOMDenom = TOMDenom, RsquaredCut = RsquaredCut,
-            edgeThreshold = edgeThreshold,
-            K = K, nbTrees = nbTrees, importanceMeasure = importanceMeasure,
-            trace = trace,
-            minR = minR, topNetPercent = topNetPercent, directed = directed,
-            enrichTest = enrichTest, namedScoresCutoffs = namedScoresCutoffs,
-            minSize = minSize, maxSize = maxSize, pvalueCutoff = pvalueCutoff,
-            qvalueCutoff = qvalueCutoff, regAltName = regAltName,
-            universe = universe, nperm = nperm), resDEA = resDEA,
-        network = network, topNetP = topNetP, resEnrich = resEnrich,
-        resScore = resScore, paramsOut = paramsOut)
-    return(object)
+  } else {
+    if (is.null(NAMES)){
+      stop("Either rownames(expr) or rowData must not be NULL.")
+    }
+    rowData = DataFrame(gene = NAMES,
+                        p = numeric(rowN),
+                        logFC = numeric(rowN),
+                        row.names = NAMES)
+  }
+  par = list(method = method,
+             minMeanExpr = minMeanExpr,
+             design = if (missing(design)) substitute() else design,
+             reduced = if (missing(reduced)) substitute() else reduced,
+             contrast = if (missing(contrast)) substitute() else contrast,
+             coef = if (missing(coef)) substitute() else coef,
+             name = if (missing(name)) substitute() else name,
+             fitType = fitType, sfType = sfType,
+             betaPrior = if (missing(betaPrior)) substitute() else betaPrior,
+             minReplicatesForReplace = minReplicatesForReplace,
+             useT = useT, minmu = minmu, parallel = parallel,
+             BPPARAM = BPPARAM, altHypothesis = altHypothesis,
+             listValues = listValues,
+             cooksCutoff = if (missing(cooksCutoff)) {
+               substitute()} else cooksCutoff,
+             independentFiltering = independentFiltering, alpha = alpha,
+             filter = if (missing(filter)) substitute() else filter,
+             theta = if (missing(theta)) substitute() else theta,
+             filterFun = if (missing(filterFun)) substitute() else filterFun,
+             addMLE = addMLE, blind = blind, ndups = ndups, spacing = spacing,
+             block = block,
+             correlation = if (missing(correlation)) {
+               substitute()} else correlation,
+             weights = weights, proportion = proportion,
+             stdev.coef.lim = stdev.coef.lim,
+             trend = trend, robust = robust, winsor.tail.p = winsor.tail.p,
+             reg = reg, rowSample = rowSample, softPower = softPower,
+             networkConstruction = networkConstruction,
+             networkType = networkType,
+             TOMDenom = TOMDenom, RsquaredCut = RsquaredCut,
+             edgeThreshold = edgeThreshold,
+             K = K, nbTrees = nbTrees, importanceMeasure = importanceMeasure,
+             trace = trace,
+             minR = minR, topNetPercent = topNetPercent, directed = directed,
+             enrichTest = enrichTest, namedScoresCutoffs = namedScoresCutoffs,
+             minSize = minSize, maxSize = maxSize, pvalueCutoff = pvalueCutoff,
+             qvalueCutoff = qvalueCutoff, regAltName = regAltName,
+             universe = universe, nperm = nperm)
+  
+  object = new(Class = "RegenrichSet", 
+               assayRaw = assay(se), 
+               assays = Assays(assays(seHi)),
+               colData = colData(seHi), 
+               NAMES = NAMES, 
+               elementMetadata = rowData, 
+               paramsIn = par, 
+               topNetwork = newTopNetwork(), 
+               resEnrich = newEnrich(),
+               resScore = newScore(), 
+               paramsOut = list(DeaMethod = NULL, networkType = NULL, 
+                                enrichTest = NULL, percent = NULL),
+               network = newTopNetwork())
+  return(object)
 }
 

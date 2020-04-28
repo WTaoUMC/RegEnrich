@@ -5,64 +5,50 @@
 \alias{RegenrichSet-class}
 \title{RegenrichSet class}
 \description{
-The `RegenrichSet` is the fundamental class that RegEnrich package
-is working with.\cr
-It contains two slots storing raw expression data
-(@rawData) and sample pheno data (@phenoData), which remain not
-changed in the whole RegEnrich analysis. \cr
-In addition, it has two slots for storing input (@paramsIn) and
-output (@paramsOut) parameters. \cr
-Lastly, there are 6 slots (@assayData, @resDEA
-, @network, @topNetP, @resEnrich, @resScore) storing different
-parts of results during RegEnrich analysis.
+The \code{RegenrichSet} is the fundamental class that RegEnrich
+package is working with.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{rawData}}{the raw expression data. This slot is used for
-differential expression analysis, meanwhile generating @assayData
-slot.}
+\item{\code{assayRaw}}{\code{matrix}, the initial raw expression data.}
 
-\item{\code{phenoData}}{data frame indicating sample information. Each row
-represent a sample and each column represent a feature of samples.}
+\item{\code{colData}}{\code{DataFrame} object, indicating sample information. 
+Each row represent a sample and each column represent a feature of samples.}
 
-\item{\code{assayData}}{a slot for saving the expression data after filtering
-(and after Variance Stabilizing Transformation, i.e. VST, if the
-differential analysis method is 'Wald_DESeq2' or 'LRT_DESeq2'). This
-slot is used for network inference and plotting.}
+\item{\code{assays}}{\code{SimpleList} object, containing the expression data after 
+filtering (and after Variance Stabilizing Transformation, i.e. VST, if the
+differential analysis method is 'Wald_DESeq2' or 'LRT_DESeq2').}
 
-\item{\code{resDEA}}{a slot for saving results after differential analysis.
-After differential expression analysis, a \code{\link{DeaSet}}
-object is assigned to this slot. Default is NULL.}
+\item{\code{elementMetadata}}{DataFrame object, a slot for saving results by 
+differential expression analysis, containing at least three 
+columns:`gene`, `p` and `logFC`.}
 
-\item{\code{topNetP}}{a slot for saving top network edges.
-After regulator-target network inference, a \code{\link{TopNetwork-class}}
+\item{\code{topNetwork}}{\code{TopNetwork} object, a slot for saving top network 
+edges. After regulator-target network inference, 
+a \code{\link{TopNetwork-class}}
 object is assigned to this slot, containing only top ranked edges
 in the full network. Default is NULL.}
 
-\item{\code{resEnrich}}{a slot for saving enrichment analysis by Fisher's
-exact test (FET) or gene set enrichment analysis (GSEA). It is a
-\code{\link{Enrich-class}} object.}
+\item{\code{resEnrich}}{\code{Enrich} object, a slot for saving enrichment analysis 
+either by Fisher's exact test (FET) or gene set enrichment analysis (GSEA).}
 
-\item{\code{resScore}}{a slot for saving regulator ranking results, which is
-a `regEnrichScore` (also `data.frame`) object. It contains five columns,
+\item{\code{resScore}}{\code{Score} object, a slot for saving regulator ranking 
+results. It contains five components,
 which are 'reg' (regulator), 'negLogPDEA' (-log10(p values of differential
 expression analysis)), 'negLogPEnrich' (-log10(p values of enrichment
-analysis),
-'logFC' (log2 fold changes), and 'score' (RegEnrich ranking score).}
+analysis)), 'logFC' (log2 fold changes), and 'score' (RegEnrich ranking 
+score).}
 
 \item{\code{paramsIn}}{list. The parameters used in the whole RegEnrich
 analysis. This slot can be updated by respecifying arguments in each step of
 RegEnrich analysis.}
 
-\item{\code{paramsOut}}{a list of four elements: method (differential expression
-method), network (regulator-target network construction method),
+\item{\code{paramsOut}}{a list of four elements: DeaMethod (differential expression
+method), networkType (regulator-target network construction method),
 percent (what percentage of edges from the full network is used),
 and enrichTest (enrichment method). By default, each element is NULL.}
 
-\item{\code{network}}{a slot for saving a full network.
-Before performing network inference, this slot is NULL (default),
-and after network inference, a \code{\link{TopNetwork-class}} object is
-assigned to this slot.}
+\item{\code{network}}{\code{TopNetwork} object, a slot for saving a full network.}
 }}
 

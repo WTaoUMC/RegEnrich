@@ -80,11 +80,11 @@ sortDataframe = function(x, by = x, decreasing = FALSE, returnID = FALSE) {
 # \code{FALSE}.  @return A list of \code{inputMatrix}
 # (expression of \code{reg}), \code{outputMatrix}
 # (expression of all genes) and \code{validRegs} (the
-# regulators exsist in \code{expr}).  @examples \dontrun{
+# regulators exsist in \code{expr}).  @examples \donttest{
 # expr = matrix(rnorm(100*1000), nrow = 1000, ncol = 100,
-# dimnames = list(paste0('G', seq_len(1000)), paste0('Samp',
-# seq_len(100)))) set.seed(1234) TFs = paste0('G',
-# sample(seq_len(1000),
+# dimnames = list(paste0('G', seq(1000)), paste0('Samp',
+# seq(100)))) set.seed(1234) TFs = paste0('G',
+# sample(seq(1000),
 # size = 50, replace = FALSE)) # rowSample = FALSE
 # inOutput(expr, reg = TFs, rowSample = FALSE) # rowSample =
 # TRUE inOutput(t(expr), reg = TFs, rowSample = TRUE) }
@@ -145,9 +145,9 @@ renameModelMatrixColumns = function (data, design){
 # @return a data.frame of edge information. The first column is from node,
 # the second column is to node, and the third is weight.
 # @examples {
-# \dontrun{
+# \donttest{
 # mat = matrix(rnorm(4*4), nrow = 4,
-#              dimnames = list(letters[seq_len(4)], LETTERS[seq_len(4)]))
+#              dimnames = list(letters[seq(4)], LETTERS[seq(4)]))
 # mat2Edge(mat, mode = "undirected", diag = TRUE)
 # mat2Edge(mat, mode = "undirected", diag = FALSE)
 # mat2Edge(mat, mode = "directed", diag = TRUE)
@@ -161,9 +161,9 @@ mat2Edge = function(mat, mode = c("directed", "undirected", "upper", "lower"),
     rowN = nrow(mat)
     colN = ncol(mat)
     nameRow = rownames(mat)
-    if(is.null(nameRow)) nameRow = seq_len(rowN)
+    if(is.null(nameRow)) nameRow = seq(rowN)
     nameCol = colnames(mat)
-    if(is.null(nameCol)) nameCol = seq_len(colN)
+    if(is.null(nameCol)) nameCol = seq(colN)
 
     if (mode == "directed"){
         id = !diag(!diag, rowN, colN)
@@ -183,4 +183,26 @@ mat2Edge = function(mat, mode = c("directed", "undirected", "upper", "lower"),
       to = nameCol[id[,2]],
       weight = mat[id],
       stringsAsFactors = FALSE))
+}
+
+
+
+######## --------------- review --------------- #########
+# obtain a regulator-target network list (list names are regulators) 
+.net = function(TopNetworkObj){
+  split(TopNetworkObj@elementset$element, TopNetworkObj@elementset$set)
+}
+
+# obtain a target-regulator network list (list names are targets) 
+.tarReg = function(TopNetworkObj){
+  split(TopNetworkObj@elementset$set, TopNetworkObj@elementset$element)
+}
+
+# judge if pFC is empty
+isEmptyPFC = function(pFC){
+  cond = all(abs(pFC$p) < 1e-18) & all(abs(pFC$logFC) < 1e-18)
+  if(is.na(cond)){
+    cond = FALSE
+  }
+  return(cond)
 }

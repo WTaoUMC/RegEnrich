@@ -3,7 +3,7 @@ title: "RegEnrich: an R package for gene regulator enrichment analysis"
 author: Weiyang Tao, Aridaman Pandit <br>
 date: "`r Sys.Date()`"
 output: 
-  rmarkdown::html_document:
+  BiocStyle::html_document:
     highlight: pygments
     toc: true
     fig_width: 5
@@ -82,7 +82,7 @@ library(RegEnrich)
 
 ```{r quickExample_Initializing, eval=FALSE, warning=FALSE, message=FALSE, results="hide"}
 object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
-                      pData = sampleInfo, # sample information (data frame)
+                      colData = sampleInfo, # sample information (data frame)
                       reg = regulators, # regulators
                       method = "limma", # differentila expression analysis method
                       design = designMatrix, # desing model matrix
@@ -109,10 +109,9 @@ res = results_score(object)
 ```
 
 
-The code can be even simpler if `dplyr` package has been installed.
+The code can be even simpler if pipe (`%>%`) is used.
 
 ```{r quickExample_simpler, eval=FALSE, warning=FALSE, message=FALSE, results="hide"}
-library(dplyr) # to use %>% 
 # Perform 4 steps in RegEnrich analysis
 object = regenrich_diffExpr(object) %>% 
   regenrich_network() %>% 
@@ -165,17 +164,12 @@ print(log2FPKM[1:6, 1:5])
 ```
 
 ### Sample information
-The second input data is sample information (`pData`), which is also a table (`data.frame`),
+The second input data is sample information (`colData`), which is also a table (`data.frame`),
 showing which samples (rows) belonging to which groups or having what features (columns).
 Here we use the sample information for the 52 samples in `Lyme_GSE63085` dataset.
 
 ```{r loadSampleInformation}
 sampleInfo = Lyme_GSE63085$sampleInfo
-# transform week to factor
-sampleInfo$week = as.factor(sampleInfo$week)
-# modify "-" to "_" in patientID, and transform it to factor
-sampleInfo$patientID = as.factor(sub("(\\d+)-(\\d+)", "\\1_\\2", sampleInfo$patientID))
-
 head(sampleInfo)
 ```
 
@@ -253,7 +247,7 @@ To reduce the running time, we consider the first 2000 genes, and remove genes
 with mean log2FPKM <= 0.01. 
 ```{r Initializing}
 object = RegenrichSet(expr = log2FPKM[1:2000, ],
-                      pData = sampleInfo,
+                      colData = sampleInfo,
                       method = "LRT_LM", 
                       minMeanExpr = 0.01,
                       design = ~ patientID + week,
@@ -412,10 +406,9 @@ It is also fine to provide a 3-column table (`data.frame` object) of network edg
 the first column is regulators, the second column is targets, and the third column is edge
 weight (reliability).
 ```{r user_defined_network_edges}
-# network_user = results_topNet(object)@netTable
-network_user = slot(results_topNet(object), "netTable")
+network_user = slot(results_topNet(object), "elementset")
 print(class(network_user))
-regenrich_network(object2) = network_user
+regenrich_network(object2) = as.data.frame(network_user)
 print(object2)
 ```
 
@@ -460,7 +453,7 @@ You can compare the order of enriched regulators obtained by FET and GSEA method
 `plotOrders` function.
 
 ```{r comparingFET_GSEA, fig.height=5, fig.width=5, eval=FALSE}
-plotOrders(enrich_FET[1:20,1], enrich_GSEA[1:20,1])
+plotOrders(enrich_FET[[1]][1:20], enrich_GSEA[[1]][1:20])
 ```
 
 
@@ -479,7 +472,7 @@ of regulators by considering regulatory interactions in the studied biological p
 
 ```{r regenrich_rankScore}
 object = regenrich_rankScore(object)
-head(results_score(object))
+results_score(object)
 ```
 
 The expression of regulator and its targets can be viewed using following code.
@@ -487,34 +480,34 @@ The expression of regulator and its targets can be viewed using following code.
 plotRegTarExpr(object, reg = "ARNTL2")
 ```
 
-Note that the previous analysis is a tutorial showing you how to perform basic RegEnrich analysis. 
-As you known this analysis is based on only first 2000 genes, the real key regulators 
+Note that the previous analysis is a tutorial showing you how to perform basic RegEnrich analysis.
+As you known this analysis is based on only first 2000 genes, the real key regulators
 should be different from the previous results.
 
-RegEnrich can work with different types of dataset, such as microarray data, RNAseq raw read count 
-data, and mass spectrometriy proteomic data. The following section shows you 2 case studies of using 
+RegEnrich can work with different types of dataset, such as microarray data, RNAseq raw read count
+data, and mass spectrometriy proteomic data. The following section shows you 2 case studies of using
 RegEnrich to work with these 2 types of datasets.
 
-- - - - 
+- - - -
 
 # Case studies
-## Case 1: Microarray (single-channel) data 
+## Case 1: Microarray (single-channel) data
 ### Background
-This case study analyzes gene expression changes of primary human hepatocytes after 6 and 24 h 
-treatment with interferon alpha (IFN-α). The gene expression was examined using single-channel Affymetrix 
-Human Genome U133 Plus 2.0 Arrays. And the raw data and normalized data is available in GEO database 
+This case study analyzes gene expression changes of primary human hepatocytes after 6 and 24 h
+treatment with interferon alpha (IFN-α). The gene expression was examined using single-channel Affymetrix
+Human Genome U133 Plus 2.0 Arrays. And the raw data and normalized data is available in GEO database
 under [GSE31193](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE31193) accession ID.
 
 ### Reading the data
-There are several ways to read the data. 
-You can download the [normalized data file](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE31nnn/GSE31193/matrix/), 
+There are several ways to read the data.
+You can download the [normalized data file](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE31nnn/GSE31193/matrix/),
 decompress it, and then read it using `read.csv` function.
 
 
-Reading the raw data (.cel files) and then normalize it using other normalization method is also possible. 
+Reading the raw data (.cel files) and then normalize it using other normalization method is also possible.
 As there is a simpler way to read data from GEO database, this method is not included in this vignette.
 ```{r case1ReadData1_1, eval=FALSE, include=FALSE}
-# Download all .cel files from GEO database (GSE31193 dataset) to current folder 
+# Download all .cel files from GEO database (GSE31193 dataset) to current folder
 # and then decompress it to GSE31193_RAW folder.
 library(affy)
 abatch = ReadAffy(celfile.path = "./GSE31193_RAW/")
@@ -533,7 +526,7 @@ fData(eset) <- data.frame(Symbol=Symbol)
 ```
 
 
-The simplist way to read the data is using `GEOquery` library. To use this library, you must 
+The simplist way to read the data is using `GEOquery` library. To use this library, you must
 have this package installed.
 ```{r case1ReadData1_2, warning=FALSE, message=FALSE}
 if (!requireNamespace("GEOquery"))
@@ -545,14 +538,14 @@ eset <- getGEO(GEO = "GSE31193")[[1]]
 
 
 This dataset contains samples treated with IL28B, but here we are focusing on only control samples
-and samples after 6 and 24 h IFN-α treatment. 
+and samples after 6 and 24 h IFN-α treatment.
 
 ```{r case1ReadData1_3}
 # Samples information
 pd0 = pData(eset)
 pd = pd0[, c("title", "time:ch1", "agent:ch1")]
 colnames(pd) = c("title", "time", "group")
-pd$time = factor(c(`n/a` = "0", `6` = "6", `24` = "24")[pd$time], 
+pd$time = factor(c(`n/a` = "0", `6` = "6", `24` = "24")[pd$time],
                  levels = c("0", "6", "24"))
 pd$group = factor(pd$group, levels = c("none", "IFN", "IL28B"))
 pData(eset) = pd
@@ -563,21 +556,21 @@ eset_IFN = eset[, pd$group %in% c("none", "IFN")]
 # Order the samples based on time of treatment
 pData(eset_IFN) = pData(eset_IFN)[order(pData(eset_IFN)$time),]
 
-# Rename samples 
+# Rename samples
 colnames(eset_IFN) = pData(eset_IFN)$title
 
 # Probes information
 probeGene = fData(eset_IFN)[, "Gene Symbol", drop = FALSE]
 ```
 
-Here to simplify the analysis, if there are multiple probes matching a gene, 
+Here to simplify the analysis, if there are multiple probes matching a gene,
 we use only one probe with higher average expression value to represent this gene.
 ```{r case1ReadData1_4}
 probeGene$meanExpr = rowMeans(exprs(eset_IFN))
 probeGene = probeGene[order(probeGene$meanExpr, decreasing = TRUE),]
 
 # Keep a single probe for a gene, and remove the probe matching no gene.
-probeGene_noDu = probeGene[!duplicated(probeGene$`Gene Symbol`), ][-1,] 
+probeGene_noDu = probeGene[!duplicated(probeGene$`Gene Symbol`), ][-1,]
 
 data = eset_IFN[rownames(probeGene_noDu), ]
 rownames(data) = probeGene_noDu$`Gene Symbol`
@@ -585,8 +578,8 @@ rownames(data) = probeGene_noDu$`Gene Symbol`
 
 
 Because the speed of network infernece is highly influenced by the number of genes,
-to quickly illustrate how to use RegEnrich, here we randomly take only 5,000 genes 
-for analysis. If you would like to see the real result in the analysis, then the 
+to quickly illustrate how to use RegEnrich, here we randomly take only 5,000 genes
+for analysis. If you would like to see the real result in the analysis, then the
 following data subsetting step should be discarded.
 
 ```{r case1ReadData1_5}
@@ -595,7 +588,7 @@ data = data[sample(1:nrow(data), 5000), ]
 ```
 
 ### RegEnrich analysis
-Here we would like to know which regulators play key roles in primary human hepatocytes 
+Here we would like to know which regulators play key roles in primary human hepatocytes
 after *24 h* treatment with IFN-α.
 
 ```{r case1RegEnrichAnalyais, message=FALSE}
@@ -608,7 +601,7 @@ contrast = c(0, 0, 1) # to extract the coefficient "time24"
 
 # Initializing a RegenrichSet object
 object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
-                      pData = sampleInfo, # sample information (data frame)
+                      colData = sampleInfo, # sample information (data frame)
                       reg = unique(TFs$TF_name), # regulators
                       method = "limma", # differentila expression analysis method
                       design = design, # desing fomula
@@ -621,16 +614,16 @@ library(dplyr)
 set.seed(123)
 
 # This procedure takes quite a bit of time.
-object = regenrich_diffExpr(object) %>% 
-  regenrich_network() %>% 
-  regenrich_enrich() %>% 
+object = regenrich_diffExpr(object) %>%
+  regenrich_network() %>%
+  regenrich_enrich() %>%
   regenrich_rankScore()
 ```
 
 
 ```{r case1RegEnrichResults, message=FALSE}
 res = results_score(object)
-head(res, 10)
+res
 ```
 
 ```{r case1Plot, , fig.height=4.5, fig.width=6, eval=FALSE}
@@ -640,14 +633,14 @@ plotRegTarExpr(object, reg = "STAT1")
 
 ## Case 2: RNAseq read count data
 ### Background
-Here we show how to apply RegEnrich on the RNAseq data by analyzing Kang et al's 
+Here we show how to apply RegEnrich on the RNAseq data by analyzing Kang et al's
 monocyte-macrophage-IFN stimulation dataset (
-[GSE130567](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE130567)). There are multiple 
-experiment conditions in this study. But here we would like to focus on partial samples in 
-which monocytes were cultured with 10 ng/ml human macrophage colonystimulating factor (M-CSF) 
-in the presence (IFN-γ-primed macrophages) or absence (resting macrophages) of 100 U/ml human 
+[GSE130567](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE130567)). There are multiple
+experiment conditions in this study. But here we would like to focus on partial samples in
+which monocytes were cultured with 10 ng/ml human macrophage colonystimulating factor (M-CSF)
+in the presence (IFN-γ-primed macrophages) or absence (resting macrophages) of 100 U/ml human
 IFN-γ for 48 h. RNA were extracted and reverse transcripted followed by sequencing (50 bp, paired-end)
-using Illumina HiSeq 4000. Sequenced reads were mapped to reference human genome (hg19 assembly) 
+using Illumina HiSeq 4000. Sequenced reads were mapped to reference human genome (hg19 assembly)
 using STAR aligner with default parameters. We will use the raw HT-seq counts for the RegEnrich
 analysis.
 
@@ -668,7 +661,7 @@ eset = eset[, pdata$treatment %in% c("NT", "IFNG-3h") & pdata$cultured == "M-CSF
 # Sample information
 sampleInfo = pData(eset)
 rownames(sampleInfo) = paste0(rep(c("Resting", "IFNG"), each = 3), 1:3)
-sampleInfo$treatment = factor(rep(c("Resting", "IFNG"), each = 3), 
+sampleInfo$treatment = factor(rep(c("Resting", "IFNG"), each = 3),
                               levels = c("Resting", "IFNG"))
 ```
 
@@ -676,7 +669,7 @@ Second, download read count file and decompose into a temporary folder.
 ```{r case2DownloadReads, message=FALSE, warning=FALSE}
 tmpFolder = tempdir()
 tmpFile = tempfile(pattern = "GSE130567_", tmpdir = tmpFolder, fileext = ".tar")
-download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE130567&format=file", 
+download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE130567&format=file",
               destfile = tmpFile, mode = "wb")
 untar(tmpFile, exdir = tmpFolder)
 files = untar(tmpFile, list = TRUE)
@@ -704,12 +697,12 @@ edata = edata[grep(".*[0-9]+$", rownames(edata)),] # remove PAR locus genes
 rownames(edata) = substr(rownames(edata), 1, 15)
 colnames(edata) = rownames(sampleInfo)
 
-# Retain genes with average read counts higher than 1 
+# Retain genes with average read counts higher than 1
 edata = edata[rowMeans(edata) > 1,]
 ```
 
-Similar to the case 1, here we randomly take only 5,000 genes to quickly illustrate how to use 
-RegEnrich, but to see the real result from the analysis, you should neglect the following step. 
+Similar to the case 1, here we randomly take only 5,000 genes to quickly illustrate how to use
+RegEnrich, but to see the real result from the analysis, you should neglect the following step.
 
 ```{r case2ReadData1_3}
 set.seed(1234)
@@ -726,7 +719,7 @@ reduced = ~ 1
 
 # Initializing a RegenrichSet object
 object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
-                      pData = sampleInfo, # sample information (data frame)
+                      colData = sampleInfo, # sample information (data frame)
                       reg = unique(TFs$TF), # regulators
                       method = "LRT_DESeq2", # differentila expression analysis method
                       design = design, # desing fomula
@@ -739,9 +732,9 @@ library(dplyr)
 set.seed(123)
 
 # This procedure takes quite a bit of time.
-object = regenrich_diffExpr(object) %>% 
-  regenrich_network() %>% 
-  regenrich_enrich() %>% 
+object = regenrich_diffExpr(object) %>%
+  regenrich_network() %>%
+  regenrich_enrich() %>%
   regenrich_rankScore()
 ```
 
@@ -749,11 +742,11 @@ object = regenrich_diffExpr(object) %>%
 ```{r case2RegEnrichResults, message=FALSE}
 res = results_score(object)
 res$name = TFs[res$reg, "TF_name"]
-head(res, 10)
+res
 ```
 
 ```{r case2Plot, , fig.height=4.5, fig.width=6, eval=FALSE}
-plotRegTarExpr(object, reg = "ENSG00000101255")
+plotRegTarExpr(object, reg = "ENSG00000028277")
 ```
 
 - - -

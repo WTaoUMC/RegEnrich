@@ -1,76 +1,76 @@
 #' @rdname regenrich_network
 #' @export
-setGeneric("regenrich_network",
-    function(object, ...) standardGeneric("regenrich_network"))
+setGeneric("regenrich_network", function(object, ...) standardGeneric("regenrich_network"))
 .regenrich_network = function(object, ...) {
-    argsIn = list(...)
-
-    mustInArgs = c("networkConstruction", "reg", "rowSample",
-        "softPower", "networkType", "TOMDenom", "RsquaredCut",
-        "edgeThreshold", "K", "nbTrees", "importanceMeasure",
-        "trace",
-        "BPPARAM", "minR", "topNetPercent",
-        "directed")
-
-    object = checkParams(object, argsIn, mustInArgs)
-
-    topNetPercent = getParamsIn(object, "topNetPercent")
-    stopifnot(is.numeric(topNetPercent))
-
-    networkConstruction = match.arg(getParamsIn(object, "networkConstruction"),
-        c("COEN", "GRN", "new"))  # COEN/GRN/new
-    if (networkConstruction == "new") {
-        if (!(topNetPercent <= 100 && topNetPercent > 0)) {
-            stop("'topNetPercent' must be between 0 (excluding) and 100 ",
-                "(including), when 'networkConstruction' is 'new'.")
-        }
-    } else {
-        if (!(topNetPercent <= 10 && topNetPercent > 0)) {
-            stop("'topNetPercent' must be between 0 (excluding) and 10 ",
-                "(including), when 'networkConstruction' is not 'new'.")
-        }
+  argsIn = list(...)
+  
+  mustInArgs = c("networkConstruction", "reg", "rowSample",
+                 "softPower", "networkType", "TOMDenom", "RsquaredCut",
+                 "edgeThreshold", "K", "nbTrees", "importanceMeasure",
+                 "trace", "BPPARAM", "minR", "topNetPercent", "directed")
+  
+  object = checkParams(object, argsIn, mustInArgs)
+  
+  topNetPercent = getParamsIn(object, "topNetPercent")
+  stopifnot(is.numeric(topNetPercent))
+  
+  networkConstruction = match.arg(getParamsIn(object, "networkConstruction"),
+                                  c("COEN", "GRN", "new"))  # COEN/GRN/new
+  if (networkConstruction == "new") {
+    if (!(topNetPercent <= 100 && topNetPercent > 0)) {
+      stop("'topNetPercent' must be between 0 (excluding) and 100 ",
+           "(including), when 'networkConstruction' is 'new'.")
     }
-
-    if (networkConstruction == "COEN") {
-        params = getParamsIn(object)[c("reg", "rowSample", "softPower",
-            "networkType", "TOMDenom", "RsquaredCut", "edgeThreshold",
-            "trace")]
-        resCall = as.call(c(list(quote(COEN), expr = quote(object@assayData)),
-            params))
-        directed = FALSE
-    } else if (networkConstruction == "GRN") {
-        params = getParamsIn(object)[c("reg", "rowSample", "K",
-            "nbTrees", "importanceMeasure", "trace",
-            "BPPARAM", "minR")]
-        resCall = as.call(c(list(quote(GRN), expr = quote(object@assayData)),
-            params))
-        directed = TRUE
-    } else if (networkConstruction == "new") {
-        stop("When networkConstruction = 'new', use 'regenrich_network<-' to ",
-            "assign the network.")
-    } else {
-        stop("Unknown networkConstruction = \n", networkConstruction)
+  } else {
+    if (!(topNetPercent <= 10 && topNetPercent > 0)) {
+      stop("'topNetPercent' must be between 0 (excluding) and 10 ",
+           "(including), when 'networkConstruction' is not 'new'.")
     }
-    net = eval(resCall)
-
-    object@network = TopNetwork(networkEdgeTable = as.data.frame(net$weightHi),
-        networkConstruction = networkConstruction, directed = directed,
-        reg = params$reg, percent = 100)
-
-    topNetP = topNet(object@network@netTable, percent = topNetPercent,
-        directed = object@network@directed, reg = params$reg)
-    object@topNetP = TopNetwork(as.data.frame(topNetP$netTable),
-        networkConstruction = networkConstruction, directed = TRUE,
-        reg = params$reg, percent = topNetPercent, extendObject = TRUE)
-
-    # Since network changes, the enrichment and regulator ranking
-    # must change
-    object@resEnrich = NULL
-    object@resScore = NULL
-    object@paramsOut = list(method = object@paramsOut$method,
-        network = networkConstruction, enrichTest = NULL,
-        percent = topNetPercent)
-    return(object)
+  }
+  reg = getParamsIn(object)[["reg"]]
+  if (networkConstruction == "COEN") {
+    params = getParamsIn(object)[c("rowSample", "softPower",
+                                   "networkType", "TOMDenom", "RsquaredCut", 
+                                   "edgeThreshold", "trace")]
+    resCall = as.call(c(list(quote(COEN), expr = quote(assay(object))),
+                        reg = quote(reg), params))
+    directed = FALSE
+  } else if (networkConstruction == "GRN") {
+    params = getParamsIn(object)[c("rowSample", "K",
+                                   "nbTrees", "importanceMeasure", "trace",
+                                   "BPPARAM", "minR")]
+    resCall = as.call(c(list(quote(GRN), expr = quote(assay(object))), 
+                        reg = quote(reg), params))
+    directed = TRUE
+  } else if (networkConstruction == "new") {
+    stop("When networkConstruction = 'new', use 'regenrich_network<-' to ",
+         "assign the network.")
+  } else {
+    stop("Unknown networkConstruction = \n", networkConstruction)
+  }
+  net = eval(resCall)
+  
+  object@network = newTopNetwork(networkEdgeTable = net$weightHi,
+                                 networkConstruction = networkConstruction, 
+                                 directed = directed,
+                                 reg = reg, percent = 100)
+  
+  topNetP = topNet(object@network@elementset, percent = topNetPercent,
+                   directed = object@network@directed, reg = reg)
+  object@topNetwork = newTopNetwork(as.data.frame(topNetP$netTable),
+                                    networkConstruction = networkConstruction, 
+                                    directed = TRUE,
+                                    reg = reg, percent = topNetPercent)
+  
+  # Since network changes, the enrichment and regulator ranking
+  # must change
+  object@resEnrich = newEnrich()
+  object@resScore = newScore()
+  object@paramsOut = list(DeaMethod = object@paramsOut$DeaMethod,
+                          networkType = networkConstruction, 
+                          enrichTest = NULL,
+                          percent = topNetPercent)
+  return(object)
 }
 #' Regulator-target network inference step
 #'
@@ -99,32 +99,33 @@ setGeneric("regenrich_network",
 #'
 #' @examples
 #' # library(RegEnrich)
-#' # Initializing a 'RegenrichSet' object
+#' data("Lyme_GSE63085")
+#' data("TFs")
+#' 
 #' data = log2(Lyme_GSE63085$FPKM + 1)
-#' pData = Lyme_GSE63085$sampleInfo
-#' x = apply(data, 1, sd)
-#' data1 = data[seq_len(2000), ]
+#' colData = Lyme_GSE63085$sampleInfo
+#' 
+#' # Take first 2000 rows for example
+#' data1 = data[seq(2000), ]
 #'
-#' pData$week = as.factor(pData$week)
-#' pData$patientID = as.factor(sub('(\\d+)-(\\d+)', '\\1_\\2',
-#'                             pData$patientID))
-#'
-#' design = model.matrix(~0 + patientID + week, data = pData)
+#' design = model.matrix(~0 + patientID + week, data = colData)
+#' 
+#' # Initializing a 'RegenrichSet' object
 #' object = RegenrichSet(expr = data1,
-#'                       pData = pData,
+#'                       colData = colData,
 #'                       method = 'limma', minMeanExpr = 0,
 #'                       design = design,
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
-#' \dontrun{
+# \donttest{
 #' # Differential expression analysis
 #' (object = regenrich_diffExpr(object))
 #'
 #' # Network inference using 'COEN' method
 #' (object = regenrich_network(object))
-#' }
+# }
 #' @rdname regenrich_network
 #' @include regenrichClasses.R
 #'
@@ -140,37 +141,38 @@ setMethod("regenrich_network", signature = "RegenrichSet", .regenrich_network)
 
 #' @rdname regenrich_network
 #' @export
-setGeneric("regenrich_network<-",
-    function(object, value) standardGeneric("regenrich_network<-"))
+setGeneric("regenrich_network<-", function(object, value) standardGeneric("regenrich_network<-"))
 
 .regenrich_network_Top = function(object, value) {
-    if (!is(results_DEA(object), "DeaSet")) {
-        stop("Differential expression analysis needs to ",
-             "be performed first.")
-    }
-    networkConstruction = "new"
-
-    # update network
-    object@network = value
-
-    # update topNetP
-    object@topNetP = TopNetwork(object@network@netTable,
-        networkConstruction = networkConstruction,
-        directed = TRUE, reg = object@paramsIn$reg, percent = 100,
-        extendObject = TRUE)
-
-    object@paramsIn$topNetPercent = 100
-    object@paramsIn$networkConstruction = networkConstruction
-    object@paramsIn$directed = TRUE
-
-    # Since network changes, the enrichment and regulator ranking
-    # must change
-    object@resEnrich = NULL
-    object@resScore = NULL
-    object@paramsOut = list(method = object@paramsOut$method,
-        network = networkConstruction, enrichTest = NULL, percent = 100)
-
-    return(object)
+  # if (!is(results_DEA(object), "DeaSet")) {
+  if (isEmptyPFC(results_DEA(object))) {
+    stop("Differential expression analysis needs to ",
+         "be performed first.")
+  }
+  networkConstruction = "new"
+  
+  # update network
+  object@network = value
+  
+  # update topNetwork
+  object@topNetwork = newTopNetwork(object@network@elementset,
+                                    networkConstruction = networkConstruction,
+                                    directed = TRUE, reg = object@paramsIn$reg, 
+                                    percent = 100)
+  
+  object@paramsIn$topNetPercent = 100
+  object@paramsIn$networkConstruction = networkConstruction
+  object@paramsIn$directed = TRUE
+  
+  # Since network changes, the enrichment and regulator ranking
+  # must change
+  object@resEnrich = newEnrich()
+  object@resScore = newScore()
+  object@paramsOut = list(DeaMethod = object@paramsOut$DeaMethod,
+                          networkType = networkConstruction, 
+                          enrichTest = NULL, percent = 100)
+  
+  return(object)
 }
 #' Network provided by users.
 #'
@@ -187,54 +189,54 @@ setGeneric("regenrich_network<-",
 #'
 #' @rdname regenrich_network
 #' @export
-setReplaceMethod(f = "regenrich_network", signature = c(object = "RegenrichSet",
-    value = "TopNetwork"), .regenrich_network_Top)
+setMethod(f = "regenrich_network<-", signature("RegenrichSet", "TopNetwork"), .regenrich_network_Top)
 
 
 .regenrich_network_df = function(object, value) {
-    if (!is(results_DEA(object), "DeaSet")) {
-        stop("Differential expression analysis needs to be performed first.")
-    }
-    if (ncol(value) == 3) {
-        if (!is.numeric(value[, 3])) {
-            stop("The third column (weight) of 'value' is not numeric.")
-        } else {
-            colnames(value) = c("from.gene", "to.gene", "weight")
-        }
+  if (isEmptyPFC(results_DEA(object))) {
+    stop("Differential expression analysis needs to be performed first.")
+  }
+  value = as.data.frame(value)
+  if (ncol(value) == 3) {
+    if (!is.numeric(value[, 3])) {
+      stop("The third column (weight) of 'value' is not numeric.")
     } else {
-        stop("The number of columns of 'value' is equal to 3.")
+      colnames(value) = c("from.gene", "to.gene", "weight")
     }
-
-    networkConstruction = "new"
-
-    # update network
-    object@network = TopNetwork(value,
-        networkConstruction = networkConstruction,
-        directed = TRUE, reg = object@paramsIn$reg, percent = 100,
-        extendObject = FALSE)
-
-    # update topNetP
-    object@topNetP = TopNetwork(object@network@netTable,
-        networkConstruction = networkConstruction,
-        directed = TRUE, reg = object@paramsIn$reg, percent = 100,
-        extendObject = TRUE)
-
-    object@paramsIn$topNetPercent = 100
-    object@paramsIn$networkConstruction = networkConstruction
-    object@paramsIn$directed = TRUE
-
-    # Since network changes, the enrichment and regulator ranking
-    # must change
-    object@resEnrich = NULL
-    object@resScore = NULL
-    object@paramsOut = list(method = object@paramsOut$method,
-        network = networkConstruction, enrichTest = NULL, percent = 100)
-
-    return(object)
+  } else {
+    stop("The number of columns of 'value' is equal to 3.")
+  }
+  
+  networkConstruction = "new"
+  
+  # update network
+  object@network = newTopNetwork(value,
+                              networkConstruction = networkConstruction,
+                              directed = TRUE, reg = object@paramsIn$reg, 
+                              percent = 100)
+  
+  # update topNetwork
+  object@topNetwork = newTopNetwork(object@network@elementset,
+                                    networkConstruction = networkConstruction,
+                                    directed = TRUE, reg = object@paramsIn$reg, 
+                                    percent = 100)
+  
+  object@paramsIn$topNetPercent = 100
+  object@paramsIn$networkConstruction = networkConstruction
+  object@paramsIn$directed = TRUE
+  
+  # Since network changes, the enrichment and regulator ranking
+  # must change
+  object@resEnrich = newEnrich()
+  object@resScore = newScore()
+  object@paramsOut = list(DeaMethod = object@paramsOut$DeaMethod,
+                          networkType = networkConstruction, 
+                          enrichTest = NULL, percent = 100)
+  
+  return(object)
 }
 
 #' @rdname regenrich_network
 #' @export
-setReplaceMethod("regenrich_network", signature = c(object = "RegenrichSet",
-    value = "data.frame"), .regenrich_network_df)
+setMethod("regenrich_network<-", signature("RegenrichSet", "data.frame"), .regenrich_network_df)
 

@@ -6,7 +6,8 @@
 \usage{
 RegenrichSet(
   expr,
-  pData,
+  colData,
+  rowData = NULL,
   method = c("Wald_DESeq2", "LRT_DESeq2", "limma", "LRT_LM"),
   minMeanExpr = NULL,
   design,
@@ -75,9 +76,12 @@ genes or a set of proteins. If the \code{method = 'Wald_DESeq2' or
 only non-negative integer matrix (read counts by RNA sequencing) is
 accepted.}
 
-\item{pData}{data.frame, sample phenotype data. The rows of pData must
-correspond
-to the columns of expr.}
+\item{colData}{data frame, sample phenotype data. 
+The rows of colData must correspond to the columns of expr.}
+
+\item{rowData}{NULL or data frame, information of each row/gene. 
+Default is NULL, which will generate a DataFrame of three columns, i.e.,
+"gene", "p", and "logFC".}
 
 \item{method}{either 'Wald_DESeq2', 'LRT_DESeq2', 'limma', or 'LRT_LM'
 for the differential expression analysis.
@@ -104,9 +108,9 @@ testing.}
 'LRT_LM', the design is the full model formula/matrix. For method =
 'limma',
 and if design is a formula, the model matrix is constructed using
-model.matrix(design, pData), so the name of each term in the design
+model.matrix(design, colData), so the name of each term in the design
 formula must
-be included in the column names of `pData`.}
+be included in the column names of `colData`.}
 
 \item{reduced}{The argument is used only when method = 'LRT_DESeq2' or
 'LRT_LM', it is a reduced formula/matrix to compare against.
@@ -131,9 +135,9 @@ of the fold changes for the numerator, and the second element (optional)
 specifies the
 names of the fold changes for the denominator. These names should be
 elements
-of \code{getResultsNames(design, pData)};
+of \code{getResultsNames(design, colData)};
 \item a numeric contrast vector with one element for each element in
-\code{getResultsNames(design, pData)}.\cr
+\code{getResultsNames(design, colData)}.\cr
 }
 
 When method = 'limma', It can be one of following two formats:
@@ -162,7 +166,7 @@ Use this argument rather than contrast for continuous variables,
 individual
 effects or for individual interaction terms. The value provided to
 name must
-be an element of \code{getResultsNames(design, pData)}.}
+be an element of \code{getResultsNames(design, colData)}.}
 
 \item{fitType}{either 'parametric', 'local', or 'mean' for the type of
 fitting
@@ -448,7 +452,7 @@ an object of RegenrichSet class.
 This is `RegenrichSet` object creator function.
 There are four types of parameters in this function.\cr
 First, parameters to provide raw data and sample information;\cr
-`expr` and `pData`.\cr\cr
+`expr` and `colData`.\cr\cr
 Second, parameters to perform differential expression analysis;\cr
 `method`, `minMeanExpr`, `design`, `reduced`, `contrast`,
 `coef`, `name`, `fitType`, `sfType`, `betaPrior`, `minReplicatesForReplace`,
@@ -468,23 +472,24 @@ Fourth, parameters to perform enrichment analysis:\cr
 }
 \examples{
 # library(RegEnrich)
-# Initializing a 'RegenrichSet' object
+data("Lyme_GSE63085")
+data("TFs")
+
 data = log2(Lyme_GSE63085$FPKM + 1)
-pData = Lyme_GSE63085$sampleInfo
-x = apply(data, 1, sd)
-data1 = data[seq_len(2000), ]
+colData = Lyme_GSE63085$sampleInfo
 
-pData$week = as.factor(pData$week)
-pData$patientID = as.factor(sub('(\\\\d+)-(\\\\d+)', '\\\\1_\\\\2',
-                            pData$patientID))
+# Take first 2000 rows for example
+data1 = data[seq(2000), ]
 
-design = model.matrix(~0 + patientID + week,
-                      data = pData)
+design = model.matrix(~0 + patientID + week, data = colData)
+
+# Initializing a 'RegenrichSet' object
 object = RegenrichSet(expr = data1,
-                      pData = pData,
+                      colData = colData,
                       method = 'limma', minMeanExpr = 0,
                       design = design,
                       contrast = c(rep(0, ncol(design) - 1), 1),
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
+object
 }

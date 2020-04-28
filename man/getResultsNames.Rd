@@ -18,9 +18,8 @@ the design formula. If design is a model matrix, then pData is not used.
 Default is NULL.}
 }
 \value{
-the names or contrast parameter (list of character format) that in
-\code{\link{DEA}}, \code{\link{regenrich_diffExpr}}
-and \code{\link{results}}
+the names of contrast parameter (list of character format) that 
+\code{\link{regenrich_diffExpr}} and \code{\link{results}}
 function can use, and it is the same as the value that
 \code{\link{resultsNames}} function returns.
 }

@@ -9,30 +9,28 @@ plot_Enrich(object, ...)
 
 \S4method{plot_Enrich}{RegenrichSet}(
   object,
-  showCategory = 20,
   reg = NULL,
-  regDescription = data.frame(reg = results_enrich(object)@allResult[, 1], Description
-    = results_enrich(object)@allResult[, 1]),
+  showCategory = 20,
+  regDescription = NULL,
   font.size = 12
 )
 }
 \arguments{
 \item{object}{a \code{RegenrichSet} object.}
 
-\item{...}{additional arguments.}
-
-\item{showCategory}{the number of regulator to plot.}
+\item{...}{other parameters.}
 
 \item{reg}{The regulator to plot. This only works when the
 GSEA enrichment method has used.}
 
-\item{regDescription}{a two-column data frame, in which
-first column is the regulator ID (for
-example ENSEMBL ID), and the second column is the description
+\item{showCategory}{the number of regulator to plot.}
+
+\item{regDescription}{NULL or a two-column data frame, in which
+first column is the regulator IDs (for
+example ENSEMBL IDs), and the second column is the description
 of regulators (for example gene
-name). Default is a data frame, in which the regulator in the
-network were repeated in the
-two columns.}
+name). Default is NULL, meaning both columns are the same regulator 
+names/IDs in the network.}
 
 \item{font.size}{font size of axis labels and axis tick mark
 labels, default is 12.}
@@ -48,24 +46,23 @@ will be plotted.
 }
 \examples{
 # library(RegEnrich)
-# Initializing a "RegenrichSet" object
+data("Lyme_GSE63085")
+data("TFs")
+
 data = log2(Lyme_GSE63085$FPKM + 1)
-pData = Lyme_GSE63085$sampleInfo
-data1 = data[seq_len(2000), ]
+colData = Lyme_GSE63085$sampleInfo
 
-pData$week = as.factor(pData$week)
-pData$patientID = as.factor(sub("(\\\\d+)-(\\\\d+)", "\\\\1_\\\\2",
-                            pData$patientID))
+# Take first 2000 rows for example
+data1 = data[seq(2000), ]
 
-design = model.matrix(~0 + patientID + week, data = pData)
+design = model.matrix(~0 + patientID + week, data = colData)
 object = RegenrichSet(expr = data1,
-                      pData = pData,
+                      colData = colData,
                       method = "limma", minMeanExpr = 0,
                       design = design,
                       contrast = c(rep(0, ncol(design) - 1), 1),
                       networkConstruction = "COEN",
                       enrichTest = "FET")
-\dontrun{
 # Differential expression analysis
 object = regenrich_diffExpr(object)
 # Network inference using "COEN" method
@@ -79,5 +76,4 @@ plot_Enrich(object)
 object = regenrich_enrich(object, enrichTest = "GSEA")
 # plot
 plot_Enrich(object)
-}
 }

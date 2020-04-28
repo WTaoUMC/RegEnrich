@@ -36,8 +36,7 @@ of regulators.
 }
 \description{
 \itemize{
-\item results_expr accesses expression data after filtering
-(and VST transformation for count data).
+\item results_expr accesses raw expression data.
 \item results_DEA accesses results from differential expression analysis.
 \item results_topNet accesses results from network inference.
 \item retults_enrich accesses results from FET/GSEA enrichment analysis.
@@ -46,26 +45,26 @@ of regulators.
 }
 \examples{
 # library(RegEnrich)
-# Initializing a 'RegenrichSet' object
+data("Lyme_GSE63085")
+data("TFs")
+
 data = log2(Lyme_GSE63085$FPKM + 1)
-pData = Lyme_GSE63085$sampleInfo
-data1 = data[seq_len(2000), ]
+colData = Lyme_GSE63085$sampleInfo
 
-pData$week = as.factor(pData$week)
-pData$patientID = as.factor(sub('(\\\\d+)-(\\\\d+)', '\\\\1_\\\\2',
-                            pData$patientID))
+# Take first 2000 rows for example
+data1 = data[seq(2000), ]
 
-design = model.matrix(~0 + patientID + week,
-                      data = pData)
+design = model.matrix(~0 + patientID + week, data = colData)
+
+# Initializing a 'RegenrichSet' object
 object = RegenrichSet(expr = data1,
-                      pData = pData,
+                      colData = colData,
                       method = 'limma', minMeanExpr = 0,
                       design = design,
                       contrast = c(rep(0, ncol(design) - 1), 1),
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
 
-\dontrun{
 # Differential expression analysis
 object = regenrich_diffExpr(object)
 results_expr(object)
@@ -82,5 +81,4 @@ results_enrich(object)
 # Regulators ranking
 object = regenrich_rankScore(object)
 results_score(object)
-}
 }

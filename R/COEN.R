@@ -46,7 +46,7 @@ COEN = function(expr, reg = TFs$TF_name, rowSample = FALSE, softPower = NULL,
 
     # Find soft power if not provided
     if (is.null(softPower)) {
-        powerVector = c(seq_len(10), seq(12, 20, by = 2))
+        powerVector = c(seq(10), seq(12, 20, by = 2))
         tmp = utils::capture.output(sft <- plotSoftPower(expr,
             rowSample = rowSample, powerVector = powerVector,
             RsquaredCut = RsquaredCut, networkType = networkType,

@@ -10,10 +10,15 @@ Description: This package is a pipeline to identify the key gene regulators in a
     There are four major steps in this pipeline: (1) differential expression analysis; (2) 
     regulator-target network inference; (3) enrichment analysis; and (4) regulators scoring 
     and ranking.
-Depends: R (>= 4.0)
+Depends: 
+    R (>= 4.0),
+    S4Vectors,
+    dplyr,
+    tibble,
+    BiocSet,
+    SummarizedExperiment
 License: GPL (>= 2)
 Encoding: UTF-8
-LazyData: true
 VignetteBuilder: knitr
 RoxygenNote: 7.1.0
 Collate: 
@@ -22,8 +27,9 @@ Collate:
     'DEA.R'
     'GRN.R'
     'data.R'
-    'localUtils.R'
     'regenrichClasses.R'
+    'genericMethods.R'
+    'localUtils.R'
     'plots.R'
     'regFET.R'
     'regSEA.R'
@@ -36,7 +42,6 @@ Collate:
     'topNet.R'
 Imports: 
     randomForest,
-    ggplot2 (>= 2.2.0),
     fgsea,
     DOSE,
     doParallel,
@@ -44,14 +49,11 @@ Imports:
     DESeq2,
     limma,
     WGCNA,
-    S4Vectors,
-    SummarizedExperiment,
-    data.table,
-    reshape2,
-    methods
+    ggplot2 (>= 2.2.0),
+    methods,
+    reshape2
 Suggests: 
     GEOquery,
-    dplyr,
     rmarkdown,
     knitr,
     BiocManager,

@@ -12,17 +12,11 @@ between 0 to 10).
 \section{Slots}{
 
 \describe{
-\item{\code{net}}{list, in which the names of elements are regulators,
-and the elements are targets of the regulators indicated by the
-element name.}
+\item{\code{element}}{tibble, the pool of targets in the network.}
 
-\item{\code{netTable}}{data frame. A table showing regulator-target
-relationship. It contains 3 columns, representing 'from.gene'
-('regulators'), 'to.gene' ('targets') and 'weight', respectively.}
+\item{\code{set}}{tibble, the pool of valid regulators.}
 
-\item{\code{validReg}}{vector, a set of valid regulators in the network.}
-
-\item{\code{tarReg}}{list, in which the names of elements are targets,
+\item{\code{elementset}}{tibble, regulator-target edges with edge weights.
 and the elements are regulators of the targets indicated by the
 element name.}
 
@@ -35,5 +29,8 @@ or 'GRN' (gene regulatory network using random forest), or 'new'
 
 \item{\code{percent}}{numeric, what percentage of the top edges are remained.
 The value must be between 0 (excluding) and 100 (including).}
+
+\item{\code{active}}{character, which data table is activated, the default is 
+"elementset".}
 }}
 

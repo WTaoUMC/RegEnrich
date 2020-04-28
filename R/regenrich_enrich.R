@@ -1,45 +1,46 @@
 #' @rdname regenrich_enrich
 #' @export
 setGeneric("regenrich_enrich",
-    function(object, ...) standardGeneric("regenrich_enrich"))
+           function(object, ...) standardGeneric("regenrich_enrich"))
 .regenrich_enrich = function(object, ...) {
-    argsIn = list(...)
-    mustInArgs = c("enrichTest", "namedScoresCutoffs", "minSize",
-        "maxSize", "pvalueCutoff", "qvalueCutoff", "regAltName",
-        "universe", "minSize", "maxSize", "pvalueCutoff", "nperm")
-    object = checkParams(object, argsIn, mustInArgs)
-
-    enrichTest = object@paramsIn$enrichTest
-    enrichTest = match.arg(enrichTest, enrichTest)
-
-    namedScores = stats::setNames(object@resDEA@pFC[, "p"],
-        rownames(object@resDEA@pFC))
-    if (enrichTest == "FET") {
-        params = getParamsIn(object)[c("namedScoresCutoffs",
-            "minSize", "maxSize", "pvalueCutoff", "qvalueCutoff",
-            "regAltName", "universe")]
-        resCall = as.call(c(list(quote(regFET), object = quote(object@topNetP),
-            namedScores = quote(namedScores)), params))
-    } else if (enrichTest == "GSEA") {
-        params = getParamsIn(object)[c("minSize", "maxSize",
-            "pvalueCutoff", "nperm")]
-        resCall = as.call(c(list(quote(regSEA), object = quote(object@topNetP),
-            namedScores = quote(namedScores)), params))
-    } else {
-        stop("'enrichTest' must be 'FET' or 'GSEA'.")
-    }
-    res = eval(resCall, envir = sys.frames())
-
-    object@resEnrich = res
-    object@paramsOut$enrichTest = enrichTest
-
-    # Since enrichment changes, the regulator ranking must change
-    object@resScore = NULL
-    object@paramsOut = list(method = object@paramsOut$method,
-        network = object@paramsOut$network, enrichTest = enrichTest,
-        percent = object@paramsOut$percent)
-
-    return(object)
+  argsIn = list(...)
+  mustInArgs = c("enrichTest", "namedScoresCutoffs", "minSize",
+                 "maxSize", "pvalueCutoff", "qvalueCutoff", "regAltName",
+                 "universe", "minSize", "maxSize", "pvalueCutoff", "nperm")
+  object = checkParams(object, argsIn, mustInArgs)
+  
+  enrichTest = object@paramsIn$enrichTest
+  enrichTest = match.arg(enrichTest, enrichTest)
+  
+  pFC = mcols(object)
+  namedScores = stats::setNames(pFC[, "p"], rownames(pFC))
+  
+  if (enrichTest == "FET") {
+    params = getParamsIn(object)[c("namedScoresCutoffs",
+                                   "minSize", "maxSize", "pvalueCutoff", "qvalueCutoff",
+                                   "regAltName", "universe")]
+    resCall = as.call(c(list(quote(regFET), object = quote(object@topNetwork),
+                             namedScores = quote(namedScores)), params))
+  } else if (enrichTest == "GSEA") {
+    params = getParamsIn(object)[c("minSize", "maxSize",
+                                   "pvalueCutoff", "nperm")]
+    resCall = as.call(c(list(quote(regSEA), object = quote(object@topNetwork),
+                             namedScores = quote(namedScores)), params))
+  } else {
+    stop("'enrichTest' must be 'FET' or 'GSEA'.")
+  }
+  res = eval(resCall, envir = sys.frames())
+  
+  object@resEnrich = res
+  
+  # Since enrichment changes, the regulator ranking must change
+  object@resScore = newScore()
+  object@paramsOut = list(DeaMethod = object@paramsOut$method,
+                          networkType = object@paramsOut$network, 
+                          enrichTest = enrichTest,
+                          percent = object@paramsOut$percent)
+  
+  return(object)
 }
 
 #' Enrichment analysis step
@@ -76,27 +77,27 @@ setGeneric("regenrich_enrich",
 #' @export
 #' @examples
 #' # library(RegEnrich)
-#' # Initializing a 'RegenrichSet' object
+#' data("Lyme_GSE63085")
+#' data("TFs")
+#' 
 #' data = log2(Lyme_GSE63085$FPKM + 1)
-#' pData = Lyme_GSE63085$sampleInfo
-#' x = apply(data, 1, sd)
-#' data1 = data[seq_len(2000), ]
+#' colData = Lyme_GSE63085$sampleInfo
+#' 
+#' # Take first 2000 rows for example
+#' data1 = data[seq(2000), ]
 #'
-#' pData$week = as.factor(pData$week)
-#' pData$patientID = as.factor(sub('(\\d+)-(\\d+)', '\\1_\\2',
-#'                             pData$patientID))
-#'
-#' design = model.matrix(~0 + patientID + week,
-#'                       data = pData)
+#' design = model.matrix(~0 + patientID + week, data = colData)
+#' 
+#' # Initializing a 'RegenrichSet' object
 #' object = RegenrichSet(expr = data1,
-#'                       pData = pData,
+#'                       colData = colData,
 #'                       method = 'limma', minMeanExpr = 0,
 #'                       design = design,
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
-#' \dontrun{
+# \donttest{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #'
@@ -105,9 +106,12 @@ setGeneric("regenrich_enrich",
 #'
 #' # Enrichment analysis by Fisher's exact test (FET)
 #' (object = regenrich_enrich(object))
-#' }
+#' 
+#' # Enrichment analysis by Fisher's exact test (GSEA)
+#' (object = regenrich_enrich(object, enrichTest = "GSEA"))
+# }
 
 setMethod(f = "regenrich_enrich", signature = "RegenrichSet",
-    definition = .regenrich_enrich)
+          definition = .regenrich_enrich)
 
 

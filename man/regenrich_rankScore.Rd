@@ -32,27 +32,26 @@ enrichment analysis (regenrich_enrich).
 }
 \examples{
 # library(RegEnrich)
-# Initializing a 'RegenrichSet' object
+data("Lyme_GSE63085")
+data("TFs")
+
 data = log2(Lyme_GSE63085$FPKM + 1)
-pData = Lyme_GSE63085$sampleInfo
-x = apply(data, 1, sd)
-data1 = data[seq_len(2000), ]
+colData = Lyme_GSE63085$sampleInfo
 
-pData$week = as.factor(pData$week)
-pData$patientID = as.factor(sub('(\\\\d+)-(\\\\d+)', '\\\\1_\\\\2',
-                            pData$patientID))
+# Take first 2000 rows for example
+data1 = data[seq(2000), ]
 
-design = model.matrix(~0 + patientID + week,
-                      data = pData)
+design = model.matrix(~0 + patientID + week, data = colData)
+
+# Initializing a 'RegenrichSet' object
 object = RegenrichSet(expr = data1,
-                      pData = pData,
+                      colData = colData,
                       method = 'limma', minMeanExpr = 0,
                       design = design,
                       contrast = c(rep(0, ncol(design) - 1), 1),
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
 
-\dontrun{
 # Differential expression analysis
 object = regenrich_diffExpr(object)
 
@@ -64,7 +63,6 @@ object = regenrich_enrich(object)
 
 # Regulators ranking
 (object = regenrich_rankScore(object))
-}
 }
 \seealso{
 Previous step \code{\link{regenrich_enrich}}.

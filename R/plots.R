@@ -4,7 +4,6 @@
 #' @param name1 a vector with first order.
 #' @param name2 a vector with anothoer second order.
 #' @rawNamespace import(ggplot2, except = margin)
-#'
 #' @return A plot of comparing two orders of vectors.
 #' @examples
 #' a = c('a1', 'a2', 'a5', 'a4')
@@ -42,55 +41,48 @@ plotOrders = function(name1, name2) {
 #' @param ylab y label of plot.
 #' @param ... other parameters in \code{\link{ggplot}} function.
 #' @return a ggplot object.
-#' \if{html}{\figure{plotRegTarExpr1.png}{options: width='70\%'
-#' alt='Figure: plotRegTarExpr1.png'}}
-#' \if{latex}{\figure{plotRegTarExpr1.pdf}{options: width=6cm}}
-#' \if{html}{\figure{plotRegTarExpr2.png}{options: width='70\%'
-#' alt='Figure: plotRegTarExpr2.png'}}
-#' \if{latex}{\figure{plotRegTarExpr2.pdf}{options: width=6cm}}
 #' @importFrom reshape2 melt
-# @rawNamespace import(ggplot2, except = margin)
 #' @export
 #' @examples
 #' # constructing a RegenrichSet object
-#' pdata = data.frame(patientID = paste0('Sample_', seq_len(50)),
-#'                    week = rep(c('0', '1'), each = 25),
-#'                    row.names = paste0('Sample_', seq_len(50)))
+#' colData = data.frame(patientID = paste0('Sample_', seq(50)),
+#'                      week = rep(c('0', '1'), each = 25),
+#'                      row.names = paste0('Sample_', seq(50)), 
+#'                      stringsAsFactors = TRUE)
 #' design = ~week
 #' reduced = ~1
 #' set.seed(123)
-#' cnts = matrix(rnbinom(n=1000*50, mu=100, size=1/0.1), ncol=50,
-#'                dimnames = list(paste0('gene', seq_len(1000)),
-#'                                rownames(pdata)))
-#' cnts[5,26:50] = cnts[5,26:50] + 50 # add reads to gene5 in some samples.
+#' cnts = matrix(as.integer(rnbinom(n=1000*50, mu=100, size=1/0.1)), ncol=50,
+#'               dimnames = list(paste0('gene', seq(1000)), rownames(colData)))
+#' 
+#' cnts[5,26:50] = cnts[5,26:50] + 50L # add reads to gene5 in some samples.
 #' id = sample(31:1000, 20) # randomly select 20 rows, and assign reads.
 #' cnts[id,] = vapply(cnts[5,], function(x){
-#'   rnbinom(n = 20, size = 1/0.02, mu = x)},
-#'   FUN.VALUE = rep(1, 20))
+#'   as.integer(rnbinom(n = 20, size = 1/0.02, mu = x))},
+#'   FUN.VALUE = rep(1L, 20))
 #'
 #' object = RegenrichSet(expr = cnts,
-#'                       pData = pdata,
+#'                       colData = colData,
 #'                       method = 'LRT_DESeq2', minMeanExpr = 0,
 #'                       design = design, reduced = reduced, fitType = 'local',
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET',
-#'                       reg = paste0('gene', seq_len(30)))
+#'                       reg = paste0('gene', seq(30)))
 #'
-#' \dontrun{
+# \donttest{
 #' ## RegEnrich analysis
 #' object = regenrich_diffExpr(object)
+#' 
 #' # Set a random softPower, otherwise it is difficult to achive a
 #' # scale-free network because of a randomly generated count data.
 #' object = regenrich_network(object, softPower = 3)
 #' object = regenrich_enrich(object)
 #' object = regenrich_rankScore(object)
-#' head(slot(object, 'resScore'))
-#' tail(slot(object, 'resScore'))
 #'
 #' ## plot expression of a regulator and its targets.
 #' plotRegTarExpr(object, reg = 'gene5')
 #' plotRegTarExpr(object, reg = 'gene27')
-#' }
+# }
 plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
     tarCol = "black", tarColAlpha = 0.1, regCol = "#ffaa00",
     xlab = "Samples", ylab = "Z-scores", ...) {
@@ -98,24 +90,24 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
         stop("The length of 'reg' must be one.")
     }
 
-    if (ncol(object@assayData) < 2 || nrow(object@assayData) <
+    if (ncol(object) < 2 || nrow(object) <
         2) {
         stop("Too little expression data.")
     } else {
-        expr = object@assayData
+        expr = assay(object)
     }
 
-    if (is.null(object@resDEA@pFC)) {
-        stop("object@resDEA@pFC is NULL, differential expression ",
+    if (isEmptyPFC(mcols(object))) {
+        stop("Differential expression ",
             "analysis needs to be performed.")
     } else {
-        pFC = object@resDEA@pFC
+        pFC = as.data.frame(mcols(object))
     }
 
-    if (is.null(object@topNetP)) {
-        stop("object@topNetP is NULL, network inference needs to be performed.")
+    if (is.null(object@topNetwork)) {
+        stop("object@topNetwork is empty, network inference needs to be performed.")
     } else {
-        topNet = object@topNetP
+        topNet = object@topNetwork
     }
 
     .plotRegTarExpr(reg = reg, expr = expr, pFC = pFC, topNet = topNet,
@@ -131,12 +123,13 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
     }
     # stopifnot(class(topNet) %in% 'TopNetwork')
     stopifnot(is(topNet, "TopNetwork"))
-    stopifnot(reg %in% names(topNet@net))
+    net = .net(topNet)
+    stopifnot(reg %in% names(net))
     stopifnot("p" %in% colnames(pFC))
     stopifnot(n > 1)
-    pReg = subset(pFC[topNet@net[[reg]], ], p < 0.05)
-    gNames = rownames(sortDataframe(pReg, "p"))[seq_len(min(n,
-        nrow(pReg)))]
+    pReg = subset(pFC[net[[reg]], ], p < 0.05)
+    
+    gNames = rownames(sortDataframe(pReg, "p"))[seq(min(n, nrow(pReg)))]
 
     regG = c(reg, gNames)
     regG_id = regG %in% rownames(expr)
@@ -196,12 +189,13 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
 #' log2FPKM = log2(Lyme_GSE63085$FPKM + 1)
 #' log2FPKMhi = log2FPKM[rowMeans(log2FPKM) >= 10^-3, , drop = FALSE]
 #' log2FPKMhi = head(log2FPKMhi, 3000) # First 3000 genes for example
-#' \dontrun{
+# \donttest{
 #' softP = plotSoftPower(log2FPKMhi, RsquaredCut = 0.85)
-#' }
+#' print(softP)
+# }
 #' @export
 plotSoftPower = function(expr, rowSample = FALSE,
-    powerVector = c(seq_len(10), seq(12, 20, by=2)),
+    powerVector = c(seq(10), seq(12, 20, by=2)),
     RsquaredCut = 0.85, networkType = "unsigned",
     verbose = 0, ...){
     stopifnot(RsquaredCut < 1 || RsquaredCut > 0)
@@ -214,10 +208,11 @@ plotSoftPower = function(expr, rowSample = FALSE,
     # enableWGCNAThreads()
     registerDoParallel(1)
     on.exit(disableWGCNAThreads())
-    sft = pickSoftThreshold(expr, RsquaredCut = RsquaredCut,
-         powerVector = powerVector,
-         networkType = networkType,
-         verbose = verbose, ...)
+    tmp = utils::capture.output(sft <- pickSoftThreshold(
+        expr, RsquaredCut = RsquaredCut,
+        powerVector = powerVector,
+        networkType = networkType,
+        verbose = verbose, ...))
     # Scale-free topology fit index as a function
     # of the soft-thresholding power
     ylab = expression(paste("Scale Free Topology Model Fit (signed, ",
@@ -242,11 +237,15 @@ plotSoftPower = function(expr, rowSample = FALSE,
 
 
 # function inside plot_Enrich
-.plot_Enrich = function(object, showCategory = 20, reg = NULL,
-     regDescription = data.frame(reg = results_enrich(object)@allResult[,1],
-         Description = results_enrich(object)@allResult[,1]), font.size = 12){
+.plot_Enrich = function(object, reg = NULL, showCategory = 20,
+                        regDescription = NULL, font.size = 12){
+    if(is.null(regDescription)){
+        regAll = results_enrich(object)@allResult[,1]
+        DescriptionAll = results_enrich(object)@allResult[,1]
+        regDescription = data.frame(reg = regAll, Description = DescriptionAll)
+    }
     stopifnot(is.data.frame(regDescription) && ncol(regDescription) == 2)
-    stopifnot(is.null(reg) || length(reg) != 1)
+    stopifnot(is.null(reg) || length(reg) == 1)
     object_enrich = results_enrich(object)
     if(is.null(object_enrich)){
         stop("FET/GSEA enrichment analysis has to be performed.")
@@ -258,45 +257,45 @@ plotSoftPower = function(expr, rowSample = FALSE,
         }
         topResult = object_enrich@topResult
         stopifnot(nrow(topResult) > 0)
-        df = topResult[seq_len(min(nrow(topResult), showCategory)), ]
+        df = topResult[seq(min(nrow(topResult), showCategory)), ]
         ratio = vapply(df$GeneRatio,
-            function(x) eval(parse(text = x)), FUN.VALUE = 1)
+                       function(x) eval(parse(text = x)), FUN.VALUE = 1)
         idx = order(ratio, decreasing = FALSE)
-
+        
         Description = regDescription[match(df$Description,
-            regDescription[,1]), 2]
+                                           regDescription[,1]), 2]
         df$Description <- factor(Description, levels = Description[idx])
-
+        
         # replace Inf with the maximum finite value
         cB = -log10(df[["p.adjust"]])
         cB[is.infinite(cB)] = max(cB[is.finite(cB)])
-
+        
         # color
         colorStr = paste0("-log10(p.adjust)")
         df$color = cB
         df$GeneRatio = ratio
-
+        
         # plot
         pt = ggplot(df, aes_string(x = "ratio", y = "Description",
-            size = "Count", color = "color")) +
+                                   size = "Count", color = "color")) +
             geom_point() +
             scale_color_gradient(name = colorStr, low = "blue", high = "red") +
             xlab("GeneRatio") + ylab("Regulator") +
             theme_dose(font.size)
     } else if (object_enrich@type ==  "GSEA"){
         namedScores = object_enrich@namedScores
-        network = results_topNet(object)@net
-
+        network = .net(results_topNet(object))
+        
         if(is.null(reg)){
             message("reg is not provided, the most ",
                     "significantly enriched regulator is plotted.")
             reg = object_enrich@allResult$regulator[1]
         }
-
+        
         Description = regDescription[match(reg, regDescription[,1]), 2][1]
-
+        
         pt = fgsea::plotEnrichment(pathway = network[[reg]],
-            stats = namedScores) +
+                                   stats = namedScores) +
             ggtitle(Description) +
             theme_dose(font.size)+
             theme(plot.title = element_text(hjust = 0.5))
@@ -320,19 +319,18 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' will be plotted.
 #'
 #' @param object a \code{RegenrichSet} object.
-#' @param showCategory the number of regulator to plot.
 #' @param reg The regulator to plot. This only works when the
 #' GSEA enrichment method has used.
-#' @param regDescription a two-column data frame, in which
-#' first column is the regulator ID (for
-#' example ENSEMBL ID), and the second column is the description
+#' @param showCategory the number of regulator to plot.
+#' @param regDescription NULL or a two-column data frame, in which
+#' first column is the regulator IDs (for
+#' example ENSEMBL IDs), and the second column is the description
 #' of regulators (for example gene
-#' name). Default is a data frame, in which the regulator in the
-#' network were repeated in the
-#' two columns.
+#' name). Default is NULL, meaning both columns are the same regulator 
+#' names/IDs in the network.
 #' @param font.size font size of axis labels and axis tick mark
 #' labels, default is 12.
-#' @param ... additional arguments.
+#' @param ... other parameters.
 #' @return a ggplot object of plotting FET or GSEA enrichment result.
 #' @import fgsea
 #' @import DOSE
@@ -341,24 +339,24 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' @export
 #' @examples
 #' # library(RegEnrich)
-#' # Initializing a "RegenrichSet" object
+#' data("Lyme_GSE63085")
+#' data("TFs")
+#' 
 #' data = log2(Lyme_GSE63085$FPKM + 1)
-#' pData = Lyme_GSE63085$sampleInfo
-#' data1 = data[seq_len(2000), ]
+#' colData = Lyme_GSE63085$sampleInfo
+#' 
+#' # Take first 2000 rows for example
+#' data1 = data[seq(2000), ]
 #'
-#' pData$week = as.factor(pData$week)
-#' pData$patientID = as.factor(sub("(\\d+)-(\\d+)", "\\1_\\2",
-#'                             pData$patientID))
-#'
-#' design = model.matrix(~0 + patientID + week, data = pData)
+#' design = model.matrix(~0 + patientID + week, data = colData)
 #' object = RegenrichSet(expr = data1,
-#'                       pData = pData,
+#'                       colData = colData,
 #'                       method = "limma", minMeanExpr = 0,
 #'                       design = design,
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = "COEN",
 #'                       enrichTest = "FET")
-#' \dontrun{
+# \donttest{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #' # Network inference using "COEN" method
@@ -372,7 +370,7 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' object = regenrich_enrich(object, enrichTest = "GSEA")
 #' # plot
 #' plot_Enrich(object)
-#' }
+# }
 setMethod("plot_Enrich", signature = "RegenrichSet", .plot_Enrich)
 
 

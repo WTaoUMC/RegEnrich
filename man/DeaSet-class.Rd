@@ -4,23 +4,55 @@
 \name{DeaSet-class}
 \alias{DeaSet-class}
 \title{DeaSet class}
-\value{
-an object of DeaSet class.
-}
 \description{
-The `DeaSet` object is to store differnetial expression analysis
-results, for further enrichment and regulator ranking.
+DeaSet class
 }
 \section{Slots}{
 
 \describe{
-\item{\code{pFC}}{a data frame of three columns, i.e. gene (gene names/IDs),
-p (differential p values), and logFC (log2 expression fold changes).}
+\item{\code{colData}}{DataFrame object, sample information, the row name is 
+corresponding to the column names of expression matrix in the \code{assays} 
+slot.}
 
-\item{\code{fullRes}}{a full result table from differential analysis. The
-contents in this table varies depending on the differential analysis
-methods.}
+\item{\code{assays}}{SimpleList object of one/multiple matrix/matrices,
+this is the slot for storing the expression data after filtering
+(and after Variance Stabilizing Transformation, i.e. VST, if the
+differential analysis method is 'Wald_DESeq2' or 'LRT_DESeq2'). And the 
+expression matrix is used for network inference and plotting.}
 
-\item{\code{fit}}{either NULL or a linear model object from differential analysis.}
+\item{\code{NAMES}}{row names of expression data in \code{assays} slot and 
+\code{elementMetadata} slot.}
+
+\item{\code{elementMetadata}}{feature information, contains at least a DataFrame 
+of three columns, i.e. `gene`, `p` and `logFC`, which stores gene names/IDs,
+differential p values and log2 expression fold changes, respectively.}
+
+\item{\code{metadata}}{DataFrame object, information of feature columns.}
+
+\item{\code{assayRaw}}{a slot for saving the raw expression data.}
 }}
 
+\examples{
+nrows = 100
+ncols = 6
+counts = matrix(rnbinom(nrows * ncols, size = 2, mu = 500),
+                nrow = nrows)
+assays = SimpleList(assayData = counts)
+
+colData = DataFrame(Condition = rep(c("treatment", "ctrl"), 3),
+                    row.names=LETTERS[1:6])
+geneNames = sprintf("G\%03s", seq(nrows))
+elementMetadata = DataFrame(gene = geneNames,
+                            p = numeric(nrows),
+                            logFC = numeric(nrows))
+
+ds = new("DeaSet",
+         assays = Assays(assays),
+         colData = colData,
+         assayRaw = counts,
+         elementMetadata = elementMetadata,
+         NAMES = geneNames)
+ds
+
+
+}
