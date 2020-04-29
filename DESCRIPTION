@@ -1,7 +1,7 @@
 Package: RegEnrich
 Type: Package
 Title: Gene regulator enrichment analysis
-Version: 0.99.10
+Version: 0.99.11
 Author: Weiyang Tao<w.tao-2@umcutrecht.nl>, 
         Aridaman Pandit<A.Pandit@umcutrecht.nl>
 Maintainer: Weiyang Tao <w.tao-2@umcutrecht.nl>
