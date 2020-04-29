@@ -1,5 +1,8 @@
-# RegEnrich 0.99.10
-* Remve `\dontrun` tags from all examples.
+# RegEnrich 0.99.12
+* Remove .Rpoj file
+
+# RegEnrich 0.99.11
+* Remove `\dontrun` tags from all examples.
 * Remove lazyData: true from `DESCRIPTION`.
 * Formatting vignettes using `BiocStyle`.
 * Replace `NEWS` file by `NEWS.md` file to track changes to the package.
