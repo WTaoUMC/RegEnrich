@@ -7,11 +7,15 @@
 plotSoftPower(
   expr,
   rowSample = FALSE,
+  weights = NULL,
   powerVector = c(seq(10), seq(12, 20, by = 2)),
   RsquaredCut = 0.85,
   networkType = "unsigned",
-  verbose = 0,
-  ...
+  removeFirst = FALSE,
+  nBreaks = 10,
+  corFnc = WGCNA::cor,
+  corOptions = list(use = "p"),
+  BPPARAM = bpparam()
 )
 }
 \arguments{
@@ -20,6 +24,9 @@ By default, each row represents a gene, each column represents a sample.}
 
 \item{rowSample}{logic. If \code{TRUE}, each row represents a sample.
 The default is \code{FALSE}.}
+
+\item{weights, }{optional observation weights for \code{expr} to be used 
+in correlation calculation.}
 
 \item{powerVector}{a vector of soft thresholding powers for which the scale
 free topology fit indices are to be calculated.}
@@ -31,16 +38,27 @@ The default is 0.85.}
 (unique abbreviations of) "unsigned" (default), "signed", "signed hybrid".
 See \code{\link{adjacency}}.}
 
-\item{verbose}{integer level of verbosity. 0 (default) means silent, higher
-values make the output progressively more and more verbose.}
+\item{removeFirst, }{should the first bin be removed from the connectivity 
+histogram? The default is FALSE.}
 
-\item{...}{Parameters in \code{\link{pickSoftThreshold}} function.}
+\item{nBreaks, }{number of bins in connectivity histograms. The default is
+10.}
+
+\item{corFnc, }{correlation function to be used in adjacency calculation.
+The default is the \code{cor} function in WGCNA.}
+
+\item{corOptions, }{a named list of options to the correlation function 
+specified in corFnc. The default is list(use = "p").}
+
+\item{BPPARAM, }{a BiocParallelParam instance to determine the parameters of 
+parallel computing, see \code{\link{bplapply}} for more details.}
 }
 \value{
 a list of three elements: \code{powerEstimate}, \code{fitIndices},
 and \code{plot}.
-The details about \code{powerEstimate} and \code{fitIndices} are shown
-in \code{\link{pickSoftThreshold}}. The \code{plot} is a ggplot object.
+\code{powerEstimate} is an estimate of an appropriate soft-thresholding 
+power. \code{fitIndices} is a data frame containing the fit indices for 
+scale free topology. The \code{plot} is a ggplot object.
 }
 \description{
 Plot soft power and corresponding scale free topology
@@ -53,7 +71,4 @@ log2FPKMhi = log2FPKM[rowMeans(log2FPKM) >= 10^-3, , drop = FALSE]
 log2FPKMhi = head(log2FPKMhi, 3000) # First 3000 genes for example
 softP = plotSoftPower(log2FPKMhi, RsquaredCut = 0.85)
 print(softP)
-}
-\seealso{
-\code{\link{pickSoftThreshold}}
 }

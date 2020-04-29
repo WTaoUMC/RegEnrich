@@ -1,3 +1,8 @@
+# RegEnrich 0.99.13
+* Fix bugs of `plotSoftPower` on Windows.
+* Hide documentations of `COEN` and `GRN` functions.
+* remove `doParallel` package from imports
+
 # RegEnrich 0.99.12
 * Remove .Rpoj file
 

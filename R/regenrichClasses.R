@@ -684,7 +684,7 @@ setClass(Class = "RegenrichSet", contains = "DeaSet",
 #' Otherwise, each column represents a sample. Default is FALSE.
 #' @param softPower numeric, a soft power to achieve scale free topology.
 #' If not provided, the parameter will be picked automatically by
-#' \code{\link{plotSoftPower}} function from the WGCNA package.
+#' \code{\link{plotSoftPower}} function.
 #' @param networkType network type. Allowed values are (unique abbreviations
 #' of)
 #' 'unsigned' (default), 'signed', 'signed hybrid'.

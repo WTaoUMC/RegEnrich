@@ -1,7 +1,7 @@
 Package: RegEnrich
 Type: Package
 Title: Gene regulator enrichment analysis
-Version: 0.99.12
+Version: 0.99.13
 Author: Weiyang Tao<w.tao-2@umcutrecht.nl>, 
         Aridaman Pandit<A.Pandit@umcutrecht.nl>
 Maintainer: Weiyang Tao <w.tao-2@umcutrecht.nl>
@@ -22,8 +22,8 @@ Encoding: UTF-8
 VignetteBuilder: knitr
 RoxygenNote: 7.1.0
 Collate: 
-    'globals.R'
     'COEN.R'
+    'globals.R'
     'DEA.R'
     'GRN.R'
     'data.R'
@@ -44,7 +44,6 @@ Imports:
     randomForest,
     fgsea,
     DOSE,
-    doParallel,
     BiocParallel,
     DESeq2,
     limma,

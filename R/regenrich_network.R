@@ -1,9 +1,12 @@
 #' @rdname regenrich_network
 #' @export
 setGeneric("regenrich_network", function(object, ...) standardGeneric("regenrich_network"))
+
 .regenrich_network = function(object, ...) {
   argsIn = list(...)
-  
+  if(isEmptyPFC(mcols(object))){
+    stop("regenrich_diffExpr have to be run before regenrich_network")
+  }
   mustInArgs = c("networkConstruction", "reg", "rowSample",
                  "softPower", "networkType", "TOMDenom", "RsquaredCut",
                  "edgeThreshold", "K", "nbTrees", "importanceMeasure",

@@ -105,7 +105,8 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
     }
 
     if (is.null(object@topNetwork)) {
-        stop("object@topNetwork is empty, network inference needs to be performed.")
+        stop("object@topNetwork is empty, network inference ", 
+             "needs to be performed.")
     } else {
         topNet = object@topNetwork
     }
@@ -167,6 +168,8 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
 #' By default, each row represents a gene, each column represents a sample.
 #' @param rowSample logic. If \code{TRUE}, each row represents a sample.
 #' The default is \code{FALSE}.
+#' @param weights, optional observation weights for \code{expr} to be used 
+#' in correlation calculation. 
 #' @param powerVector a vector of soft thresholding powers for which the scale
 #' free topology fit indices are to be calculated.
 #' @param RsquaredCut desired minimum scale free topology fitting index R^2.
@@ -174,45 +177,57 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
 #' @param networkType character, network type. Allowed values are
 #' (unique abbreviations of) "unsigned" (default), "signed", "signed hybrid".
 #' See \code{\link{adjacency}}.
-#' @param verbose integer level of verbosity. 0 (default) means silent, higher
-#' values make the output progressively more and more verbose.
-#' @param ... Parameters in \code{\link{pickSoftThreshold}} function.
+#' @param removeFirst, should the first bin be removed from the connectivity 
+#' histogram? The default is FALSE.
+#' @param nBreaks, number of bins in connectivity histograms. The default is
+#' 10.
+#' @param corFnc, correlation function to be used in adjacency calculation.
+#' The default is the \code{cor} function in WGCNA.
+#' @param corOptions, a named list of options to the correlation function 
+#' specified in corFnc. The default is list(use = "p").
+#' @param BPPARAM, a BiocParallelParam instance to determine the parameters of 
+#' parallel computing, see \code{\link{bplapply}} for more details.
 #' @return a list of three elements: \code{powerEstimate}, \code{fitIndices},
 #' and \code{plot}.
-#' The details about \code{powerEstimate} and \code{fitIndices} are shown
-#' in \code{\link{pickSoftThreshold}}. The \code{plot} is a ggplot object.
-#' @seealso \code{\link{pickSoftThreshold}}
+#' \code{powerEstimate} is an estimate of an appropriate soft-thresholding 
+#' power. \code{fitIndices} is a data frame containing the fit indices for 
+#' scale free topology. The \code{plot} is a ggplot object.
 #' @import WGCNA
-#' @importFrom doParallel registerDoParallel
+#' @import BiocParallel
 #' @examples
 #' data(Lyme_GSE63085)
 #' log2FPKM = log2(Lyme_GSE63085$FPKM + 1)
 #' log2FPKMhi = log2FPKM[rowMeans(log2FPKM) >= 10^-3, , drop = FALSE]
 #' log2FPKMhi = head(log2FPKMhi, 3000) # First 3000 genes for example
-# \donttest{
 #' softP = plotSoftPower(log2FPKMhi, RsquaredCut = 0.85)
 #' print(softP)
-# }
 #' @export
+#' 
 plotSoftPower = function(expr, rowSample = FALSE,
-    powerVector = c(seq(10), seq(12, 20, by=2)),
-    RsquaredCut = 0.85, networkType = "unsigned",
-    verbose = 0, ...){
+                         weights = NULL, 
+                         powerVector = c(seq(10), seq(12, 20, by=2)),
+                         RsquaredCut = 0.85, networkType = "unsigned",
+                         removeFirst = FALSE, nBreaks = 10, 
+                         corFnc = WGCNA::cor, 
+                         corOptions = list(use = "p"), 
+                         BPPARAM = bpparam()){
     stopifnot(RsquaredCut < 1 || RsquaredCut > 0)
-
+    
     if(!rowSample) {
         expr = t(expr)
         rowSample = !rowSample
-     }
+    }
     # Call the network topology analysis function
-    # enableWGCNAThreads()
-    registerDoParallel(1)
-    on.exit(disableWGCNAThreads())
-    tmp = utils::capture.output(sft <- pickSoftThreshold(
-        expr, RsquaredCut = RsquaredCut,
+    sft <- pickSoftThreshold2(
+        expr, weights = weights, 
+        RsquaredCut = RsquaredCut,
         powerVector = powerVector,
         networkType = networkType,
-        verbose = verbose, ...))
+        removeFirst = removeFirst, 
+        nBreaks = nBreaks, 
+        corFnc = corFnc, 
+        corOptions = corOptions, 
+        BPPARAM = BPPARAM)
     # Scale-free topology fit index as a function
     # of the soft-thresholding power
     ylab = expression(paste("Scale Free Topology Model Fit (signed, ",
@@ -233,6 +248,89 @@ plotSoftPower = function(expr, rowSample = FALSE,
         theme(axis.title.y.left = element_text(colour = "red"),
             axis.title.y.right = element_text(colour = "blue"))
     return(sft)
+}
+
+# A light version of pickSoftThreshold function from WGCNA
+#' @importFrom stats median
+#' @importFrom utils getFromNamespace
+pickSoftThreshold2 = function (data, 
+                               weights = NULL, RsquaredCut = 0.85, 
+                               powerVector = c(seq(1, 10, by = 1), 
+                                               seq(12, 20, by = 2)), 
+                               removeFirst = FALSE, nBreaks = 10, 
+                               corFnc = WGCNA::cor, 
+                               corOptions = list(use = "p"), 
+                               networkType = "unsigned", 
+                               BPPARAM = bpparam()) {
+    powerVector = sort(powerVector)
+    .networkTypes = c("unsigned", "signed", "signed hybrid")
+    intType = charmatch(networkType, .networkTypes)
+    if (is.na(intType)) 
+        stop(paste0("networkType must be one of: ", 
+                    paste(.networkTypes, collapse = ", "), "."))
+    nGenes = ncol(data)
+    if (nGenes < 3) {
+        stop("The input data data contain fewer than 3 rows (nodes).", 
+             "\nThis would result in a trivial correlation network.")
+    }
+    colname1 = c("Power", "SFT.R.sq", "slope", "truncated R.sq", 
+                 "mean(k)", "median(k)", "max(k)")
+    corFnc = match.fun(corFnc)
+    corOptions$x = data
+    if (!is.null(weights)) {
+        if (!isTRUE(all.equal(dim(data), dim(weights)))) 
+            stop("When 'weights' are given, dimensions of 'data' and 'weights'",
+                 " must be the same.")
+        corOptions$weights.x = weights
+    }
+    corOptions$y = data
+    if (!is.null(weights))
+        corOptions$weights.y = weights
+    corx = do.call(corFnc, corOptions)
+    if (intType == 1) {
+        corx = abs(corx)
+    } else if (intType == 2) {
+        corx = (1 + corx)/2
+    } else if (intType == 3) {
+        corx[corx < 0] = 0
+    }
+    if (any(is.na(corx))) warning("Some correlations are NA.")
+    
+    scaleFreeFitIndex = getFromNamespace("scaleFreeFitIndex", "WGCNA")
+    corxPrev = matrix(1, nrow = nrow(corx), ncol = ncol(corx))
+    powerSteps <- powerVector - c(0, head(powerVector, -1))
+    uniquePowerSteps <- unique(powerSteps)
+    corxPowers <- lapply(uniquePowerSteps, function(p) corx^p)
+    names(corxPowers) <- uniquePowerSteps
+    
+    dat = list()
+    
+    for(i in seq_along(powerVector)){
+        corxCur = corxPrev * corxPowers[[as.character(powerSteps[i])]]
+        corxPrev = corxCur
+        dat[[i]] = colSums(corxCur, na.rm = TRUE) - 1
+    }
+    
+    datout = BiocParallel::bplapply(seq_along(powerVector), function(i){
+        # corxCur <- corxPrev * corxPowers[[as.character(powerSteps[i])]]
+        # assign("corxPrev", corxCur, envir = env)
+        # khelp = colSums(corxCur, na.rm = TRUE) - 1
+        khelp = dat[[i]]
+        SFT1 = scaleFreeFitIndex(k = khelp, nBreaks = nBreaks, 
+                                 removeFirst = removeFirst)
+        c(powerVector[i], unlist(SFT1), 
+          unlist(lapply(c(mean, median, max), function(f) {
+              f(khelp, na.rm = TRUE)})))
+    }, BPPARAM = BPPARAM)
+    
+    datout = do.call(rbind, datout)
+    colnames(datout) = colname1
+    
+    ind1 = datout[, 2] > RsquaredCut
+    indcut = ifelse(sum(ind1) > 0, min(c(1:length(ind1))[ind1]), NA)
+    powerEstimate = powerVector[indcut][[1]]
+    gc()
+    list(powerEstimate = powerEstimate, fitIndices = data.frame(datout))
 }
 
 
@@ -356,7 +454,6 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #'                       contrast = c(rep(0, ncol(design) - 1), 1),
 #'                       networkConstruction = "COEN",
 #'                       enrichTest = "FET")
-# \donttest{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #' # Network inference using "COEN" method
@@ -370,7 +467,6 @@ setGeneric("plot_Enrich", function(object, ...) standardGeneric("plot_Enrich"))
 #' object = regenrich_enrich(object, enrichTest = "GSEA")
 #' # plot
 #' plot_Enrich(object)
-# }
 setMethod("plot_Enrich", signature = "RegenrichSet", .plot_Enrich)
 
 

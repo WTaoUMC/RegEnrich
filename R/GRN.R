@@ -1,44 +1,43 @@
-#' Constructing Gene Regulatory Network (GRN)
-#' @description \code{GRN} is a function to construct the GRN network
-#' using random forest algorithm. This method was initially introduced in
-#' GENIE3, but here, GRN support parallel computing. It can control the
-#' model accuracy, and define the regulators in the network.
-#' @param expr Gene expression data, either a matrix or a data frame.
-#' By default (\code{rowSample = FALSE}), each row represents a gene,
-#' each column represents a sample.
-#' @param reg vector of charactors, representing gene regulators.
-#' By default, these are transcription factors and co-factors,
-#' defined by three literatures/databases, namely RegNet, TRRUST, and
-#' Marbach2016.
-#' @param rowSample logical If \code{TRUE}, each row represents a sample.
-#' The default is \code{FALSE}.
-#' @param K integer or character. The number of features in each tree,
-#' can be either a integer number, \code{sqrt}, or \code{all}.
-#' \code{sqrt} denotes sqrt(the number of \code{reg}), \code{all}
-#' means the number of \code{reg}. The default is \code{sqrt}.
-#' @param nbTrees integer. The number of trees. The default is 1000.
-#' @param importanceMeasure character. The importance type in
-#' \code{importance}. importanceMeasure can be \code{\%IncMSE}  or
-#' \code{IncNodePurity}, corresponding to type = 1 and 2 in
-#' \code{importance}. The default is \code{IncNodePurity}
-#' (decrease in node impurity), which is faster than \code{\%IncMSE}
-#' (decrease in accuracy).
-#' @param trace logical. To show the progress or not (default).
-#' @param BPPARAM parameters for parallel computing (default is
-#' \code{bpparam()}).
-#' @param maxMSE numeric. The maximum out-of-bag MSE is to control model
-#' accuracy. The default is NULL, which means no filtering by this parameter.
-#' @param minR numeric. The minimum correlation coefficient of prediction is to
-#' control model accuracy. The default is 0.3.
-#' @param ... the rest parameters in \code{\link{randomForest}} function.
-#'
-#' @return A list of 'weightHi' and 'performanceHi'. 'weightHi' is the edge
-#' weights by high accurate model, and 'performanceHi' is the performances
-#' of high accurate models.
+# Constructing Gene Regulatory Network (GRN)
+# @description \code{GRN} is a function to construct the GRN network
+# using random forest algorithm. This method was initially introduced in
+# GENIE3, but here, GRN support parallel computing. It can control the
+# model accuracy, and define the regulators in the network.
+# @param expr Gene expression data, either a matrix or a data frame.
+# By default (\code{rowSample = FALSE}), each row represents a gene,
+# each column represents a sample.
+# @param reg vector of charactors, representing gene regulators.
+# By default, these are transcription factors and co-factors,
+# defined by three literatures/databases, namely RegNet, TRRUST, and
+# Marbach2016.
+# @param rowSample logical If \code{TRUE}, each row represents a sample.
+# The default is \code{FALSE}.
+# @param K integer or character. The number of features in each tree,
+# can be either a integer number, \code{sqrt}, or \code{all}.
+# \code{sqrt} denotes sqrt(the number of \code{reg}), \code{all}
+# means the number of \code{reg}. The default is \code{sqrt}.
+# @param nbTrees integer. The number of trees. The default is 1000.
+# @param importanceMeasure character. The importance type in
+# \code{importance}. importanceMeasure can be \code{\%IncMSE}  or
+# \code{IncNodePurity}, corresponding to type = 1 and 2 in
+# \code{importance}. The default is \code{IncNodePurity}
+# (decrease in node impurity), which is faster than \code{\%IncMSE}
+# (decrease in accuracy).
+# @param trace logical. To show the progress or not (default).
+# @param BPPARAM parameters for parallel computing (default is
+# \code{bpparam()}).
+# @param maxMSE numeric. The maximum out-of-bag MSE is to control model
+# accuracy. The default is NULL, which means no filtering by this parameter.
+# @param minR numeric. The minimum correlation coefficient of prediction is to
+# control model accuracy. The default is 0.3.
+# @param ... the rest parameters in \code{\link{randomForest}} function.
+#
+# @return A list of 'weightHi' and 'performanceHi'. 'weightHi' is the edge
+# weights by high accurate model, and 'performanceHi' is the performances
+# of high accurate models.
 #' @import randomForest
 #' @import BiocParallel
 #' @import tibble
-# @rawNamespace import(data.table, except = c(melt, dcast))
 #' @include globals.R
 # @export
 GRN = function(expr, reg = TFs$TF_name, rowSample = FALSE, 
