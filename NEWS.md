@@ -1,7 +1,12 @@
+# RegEnrich 0.99.14
+* Add `\donttest` tags.
+* Optimize `COEN` function.
+* Replace `bplapply` by `lapply` in `pickSoftThreshold2` function.
+
 # RegEnrich 0.99.13
 * Fix bugs of `plotSoftPower` on Windows.
 * Hide documentations of `COEN` and `GRN` functions.
-* remove `doParallel` package from imports
+* Remove `doParallel` package from imports
 
 # RegEnrich 0.99.12
 * Remove .Rpoj file

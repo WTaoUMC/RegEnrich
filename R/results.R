@@ -35,7 +35,7 @@
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
-# \donttest{
+#' \donttest{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #' results_expr(object)
@@ -52,7 +52,7 @@
 #' # Regulators ranking
 #' object = regenrich_rankScore(object)
 #' results_score(object)
-# }
+#' }
 results_expr = function(object) {
     object@assayRaw
 }

@@ -97,7 +97,7 @@ setGeneric("regenrich_enrich",
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
-# \donttest{
+#' \donttest{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #'
@@ -109,7 +109,7 @@ setGeneric("regenrich_enrich",
 #' 
 #' # Enrichment analysis by Fisher's exact test (GSEA)
 #' (object = regenrich_enrich(object, enrichTest = "GSEA"))
-# }
+#' }
 
 setMethod(f = "regenrich_enrich", signature = "RegenrichSet",
           definition = .regenrich_enrich)

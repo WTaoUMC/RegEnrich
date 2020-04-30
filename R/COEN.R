@@ -47,9 +47,14 @@ COEN = function(expr, reg = TFs$TF_name, rowSample = FALSE, softPower = NULL,
     # Find soft power if not provided
     if (is.null(softPower)) {
         powerVector = c(seq(10), seq(12, 20, by = 2))
-        sft <- plotSoftPower(expr,
-            rowSample = rowSample, powerVector = powerVector,
-            RsquaredCut = RsquaredCut, networkType = networkType)
+        # sft <- plotSoftPower(expr,
+        #     rowSample = rowSample, powerVector = powerVector,
+        #     RsquaredCut = RsquaredCut, networkType = networkType)
+        
+        sft <- pickSoftThreshold2(expr,
+            powerVector = powerVector,
+            RsquaredCut = RsquaredCut, 
+            networkType = networkType)
         softPower = sft$powerEstimate
     }
     # stopifnot((!is.null(softPower)) & (!is.na(softPower)))

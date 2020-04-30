@@ -185,22 +185,21 @@ plotRegTarExpr = function(object, reg, n = 1000, scale = TRUE,
 #' The default is the \code{cor} function in WGCNA.
 #' @param corOptions, a named list of options to the correlation function 
 #' specified in corFnc. The default is list(use = "p").
-#' @param BPPARAM, a BiocParallelParam instance to determine the parameters of 
-#' parallel computing, see \code{\link{bplapply}} for more details.
 #' @return a list of three elements: \code{powerEstimate}, \code{fitIndices},
 #' and \code{plot}.
 #' \code{powerEstimate} is an estimate of an appropriate soft-thresholding 
 #' power. \code{fitIndices} is a data frame containing the fit indices for 
 #' scale free topology. The \code{plot} is a ggplot object.
 #' @import WGCNA
-#' @import BiocParallel
 #' @examples
 #' data(Lyme_GSE63085)
 #' log2FPKM = log2(Lyme_GSE63085$FPKM + 1)
 #' log2FPKMhi = log2FPKM[rowMeans(log2FPKM) >= 10^-3, , drop = FALSE]
 #' log2FPKMhi = head(log2FPKMhi, 3000) # First 3000 genes for example
+#' \donttest{
 #' softP = plotSoftPower(log2FPKMhi, RsquaredCut = 0.85)
 #' print(softP)
+#' }
 #' @export
 #' 
 plotSoftPower = function(expr, rowSample = FALSE,
@@ -209,8 +208,7 @@ plotSoftPower = function(expr, rowSample = FALSE,
                          RsquaredCut = 0.85, networkType = "unsigned",
                          removeFirst = FALSE, nBreaks = 10, 
                          corFnc = WGCNA::cor, 
-                         corOptions = list(use = "p"), 
-                         BPPARAM = bpparam()){
+                         corOptions = list(use = "p")){
     stopifnot(RsquaredCut < 1 || RsquaredCut > 0)
     
     if(!rowSample) {
@@ -226,8 +224,7 @@ plotSoftPower = function(expr, rowSample = FALSE,
         removeFirst = removeFirst, 
         nBreaks = nBreaks, 
         corFnc = corFnc, 
-        corOptions = corOptions, 
-        BPPARAM = BPPARAM)
+        corOptions = corOptions)
     # Scale-free topology fit index as a function
     # of the soft-thresholding power
     ylab = expression(paste("Scale Free Topology Model Fit (signed, ",
@@ -251,8 +248,6 @@ plotSoftPower = function(expr, rowSample = FALSE,
 }
 
 # A light version of pickSoftThreshold function from WGCNA
-#' @importFrom stats median
-#' @importFrom utils getFromNamespace
 pickSoftThreshold2 = function (data, 
                                weights = NULL, RsquaredCut = 0.85, 
                                powerVector = c(seq(1, 10, by = 1), 
@@ -260,8 +255,7 @@ pickSoftThreshold2 = function (data,
                                removeFirst = FALSE, nBreaks = 10, 
                                corFnc = WGCNA::cor, 
                                corOptions = list(use = "p"), 
-                               networkType = "unsigned", 
-                               BPPARAM = bpparam()) {
+                               networkType = "unsigned") {
     powerVector = sort(powerVector)
     .networkTypes = c("unsigned", "signed", "signed hybrid")
     intType = charmatch(networkType, .networkTypes)
@@ -296,7 +290,7 @@ pickSoftThreshold2 = function (data,
     }
     if (any(is.na(corx))) warning("Some correlations are NA.")
     
-    scaleFreeFitIndex = getFromNamespace("scaleFreeFitIndex", "WGCNA")
+    scaleFreeFitIndex = utils::getFromNamespace("scaleFreeFitIndex", "WGCNA")
     corxPrev = matrix(1, nrow = nrow(corx), ncol = ncol(corx))
     powerSteps <- powerVector - c(0, head(powerVector, -1))
     uniquePowerSteps <- unique(powerSteps)
@@ -311,7 +305,7 @@ pickSoftThreshold2 = function (data,
         dat[[i]] = colSums(corxCur, na.rm = TRUE) - 1
     }
     
-    datout = BiocParallel::bplapply(seq_along(powerVector), function(i){
+    datout = lapply(seq_along(powerVector), function(i){
         # corxCur <- corxPrev * corxPowers[[as.character(powerSteps[i])]]
         # assign("corxPrev", corxCur, envir = env)
         # khelp = colSums(corxCur, na.rm = TRUE) - 1
@@ -319,15 +313,15 @@ pickSoftThreshold2 = function (data,
         SFT1 = scaleFreeFitIndex(k = khelp, nBreaks = nBreaks, 
                                  removeFirst = removeFirst)
         c(powerVector[i], unlist(SFT1), 
-          unlist(lapply(c(mean, median, max), function(f) {
+          unlist(lapply(c(mean, stats::median, max), function(f) {
               f(khelp, na.rm = TRUE)})))
-    }, BPPARAM = BPPARAM)
+    })
     
     datout = do.call(rbind, datout)
     colnames(datout) = colname1
     
     ind1 = datout[, 2] > RsquaredCut
-    indcut = ifelse(sum(ind1) > 0, min(c(1:length(ind1))[ind1]), NA)
+    indcut = ifelse(sum(ind1) > 0, min(seq_along(ind1)[ind1]), NA)
     powerEstimate = powerVector[indcut][[1]]
     gc()
     list(powerEstimate = powerEstimate, fitIndices = data.frame(datout))

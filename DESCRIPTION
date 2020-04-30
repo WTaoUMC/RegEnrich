@@ -60,5 +60,5 @@ Suggests:
 biocViews:
     GeneExpression, Transcriptomics, RNASeq, TwoChannel, 
     Transcription, GeneTarget, NetworkEnrichment,
-    DifferentialExpression, Network,
-    GeneSetEnrichment, FunctionalPrediction, 
+    DifferentialExpression, Network, NetworkInference,
+    GeneSetEnrichment, FunctionalPrediction

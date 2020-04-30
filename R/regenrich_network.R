@@ -122,13 +122,13 @@ setGeneric("regenrich_network", function(object, ...) standardGeneric("regenrich
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
-# \donttest{
+#' \donttest{
 #' # Differential expression analysis
 #' (object = regenrich_diffExpr(object))
 #'
 #' # Network inference using 'COEN' method
 #' (object = regenrich_network(object))
-# }
+#' }
 #' @rdname regenrich_network
 #' @include regenrichClasses.R
 #'

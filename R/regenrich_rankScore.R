@@ -73,7 +73,7 @@ setGeneric("regenrich_rankScore",
 #'                       networkConstruction = 'COEN',
 #'                       enrichTest = 'FET')
 #'
-# \donttest{
+#' \donttest{
 #' # Differential expression analysis
 #' object = regenrich_diffExpr(object)
 #'
@@ -85,7 +85,7 @@ setGeneric("regenrich_rankScore",
 #'
 #' # Regulators ranking
 #' (object = regenrich_rankScore(object))
-# }
+#' }
 setMethod("regenrich_rankScore", signature = "RegenrichSet",
           definition = .regenrich_rankScore)
 

@@ -14,8 +14,7 @@ plotSoftPower(
   removeFirst = FALSE,
   nBreaks = 10,
   corFnc = WGCNA::cor,
-  corOptions = list(use = "p"),
-  BPPARAM = bpparam()
+  corOptions = list(use = "p")
 )
 }
 \arguments{
@@ -49,9 +48,6 @@ The default is the \code{cor} function in WGCNA.}
 
 \item{corOptions, }{a named list of options to the correlation function 
 specified in corFnc. The default is list(use = "p").}
-
-\item{BPPARAM, }{a BiocParallelParam instance to determine the parameters of 
-parallel computing, see \code{\link{bplapply}} for more details.}
 }
 \value{
 a list of three elements: \code{powerEstimate}, \code{fitIndices},
