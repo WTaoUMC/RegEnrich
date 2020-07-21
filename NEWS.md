@@ -1,3 +1,7 @@
+# RegEnrich 0.99.15
+* Fix a bug in `regenrich_rankScore` function.
+* Reexport pipe `%>%`.
+
 # RegEnrich 0.99.14
 * Add `\donttest` tags.
 * Optimize `COEN` function.
@@ -6,10 +10,10 @@
 # RegEnrich 0.99.13
 * Fix bugs of `plotSoftPower` on Windows.
 * Hide documentations of `COEN` and `GRN` functions.
-* Remove `doParallel` package from imports
+* Remove `doParallel` package from imports.
 
 # RegEnrich 0.99.12
-* Remove .Rpoj file
+* Remove .Rpoj file.
 
 # RegEnrich 0.99.11
 * Remove `\dontrun` tags from all examples.

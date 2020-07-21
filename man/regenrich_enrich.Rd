@@ -60,6 +60,7 @@ object = RegenrichSet(expr = data1,
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
 
+\donttest{
 # Differential expression analysis
 object = regenrich_diffExpr(object)
 
@@ -71,6 +72,7 @@ object = regenrich_network(object)
 
 # Enrichment analysis by Fisher's exact test (GSEA)
 (object = regenrich_enrich(object, enrichTest = "GSEA"))
+}
 }
 \seealso{
 Previous step \code{\link{regenrich_network}},

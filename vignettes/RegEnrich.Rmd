@@ -599,6 +599,7 @@ sampleInfo = pData(data) # sample information
 design = ~time
 contrast = c(0, 0, 1) # to extract the coefficient "time24"
 
+data(TFs)
 # Initializing a RegenrichSet object
 object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
                       colData = sampleInfo, # sample information (data frame)
@@ -610,7 +611,6 @@ object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
                       enrichTest = "FET") # enrichment analysis method
 
 # Perform RegEnrich analysis
-library(dplyr)
 set.seed(123)
 
 # This procedure takes quite a bit of time.
@@ -717,6 +717,7 @@ expressionMatrix = as.matrix(edata) # expression data
 design = ~ treatment
 reduced = ~ 1
 
+data(TFs)
 # Initializing a RegenrichSet object
 object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
                       colData = sampleInfo, # sample information (data frame)
@@ -728,7 +729,6 @@ object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
                       enrichTest = "FET") # enrichment analysis method
 
 # Perform RegEnrich analysis
-library(dplyr)
 set.seed(123)
 
 # This procedure takes quite a bit of time.

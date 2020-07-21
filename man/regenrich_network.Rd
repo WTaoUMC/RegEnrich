@@ -76,11 +76,13 @@ object = RegenrichSet(expr = data1,
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
 
+\donttest{
 # Differential expression analysis
 (object = regenrich_diffExpr(object))
 
 # Network inference using 'COEN' method
 (object = regenrich_network(object))
+}
 }
 \seealso{
 Previous step \code{\link{regenrich_diffExpr}},

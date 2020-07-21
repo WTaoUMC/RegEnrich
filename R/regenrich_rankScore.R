@@ -158,7 +158,7 @@ setMethod("regenrich_rankScore", signature = "RegenrichSet",
                  negLogPEnrich = negLogPEnrich, logFC = logFC, 
                  score = score)
   if (nrow(res) > 0) {
-    res = arrange(res, desc(score))
+    res = arrange(as.data.frame(res), desc(score))
     rownames(res) = seq(nrow(res))
   }
   res = as(res, "Score")

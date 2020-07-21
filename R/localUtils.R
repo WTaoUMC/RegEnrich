@@ -1,3 +1,7 @@
+#' @importFrom magrittr %>%
+#' @export
+magrittr::`%>%`
+
 # Obtain paramsIn slot from RegenrichSet object.
 getParamsIn = function(object, arg = NULL) {
     stopifnot(is(object, "RegenrichSet"))

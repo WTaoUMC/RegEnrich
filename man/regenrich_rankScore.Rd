@@ -52,6 +52,7 @@ object = RegenrichSet(expr = data1,
                       networkConstruction = 'COEN',
                       enrichTest = 'FET')
 
+\donttest{
 # Differential expression analysis
 object = regenrich_diffExpr(object)
 
@@ -63,6 +64,7 @@ object = regenrich_enrich(object)
 
 # Regulators ranking
 (object = regenrich_rankScore(object))
+}
 }
 \seealso{
 Previous step \code{\link{regenrich_enrich}}.
