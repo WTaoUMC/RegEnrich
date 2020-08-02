@@ -1,7 +1,7 @@
 Package: RegEnrich
 Type: Package
 Title: Gene regulator enrichment analysis
-Version: 0.99.15
+Version: 0.99.16
 Author: Weiyang Tao<w.tao-2@umcutrecht.nl>, 
         Aridaman Pandit<A.Pandit@umcutrecht.nl>
 Maintainer: Weiyang Tao <w.tao-2@umcutrecht.nl>
@@ -50,7 +50,8 @@ Imports:
     WGCNA,
     ggplot2 (>= 2.2.0),
     methods,
-    reshape2
+    reshape2,
+    magrittr
 Suggests: 
     GEOquery,
     rmarkdown,
