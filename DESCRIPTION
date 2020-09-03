@@ -1,17 +1,19 @@
 Package: RegEnrich
 Type: Package
 Title: Gene regulator enrichment analysis
-Version: 0.99.16
-Author: Weiyang Tao<w.tao-2@umcutrecht.nl>, 
-        Aridaman Pandit<A.Pandit@umcutrecht.nl>
-Maintainer: Weiyang Tao <w.tao-2@umcutrecht.nl>
+Version: 0.99.17
+Authors@R: c(
+    person("Weiyang", "Tao", email = "w.tao-2@umcutrecht.nl", 
+        role = c("cre", "aut")),
+    person("Aridaman", "Pandit", email = "A.Pandit@umcutrecht.nl", 
+        role = "aut"))
 Description: This package is a pipeline to identify the key gene regulators in a biological 
     process, for example in cell differentiation and in cell development after stimulation. 
     There are four major steps in this pipeline: (1) differential expression analysis; (2) 
     regulator-target network inference; (3) enrichment analysis; and (4) regulators scoring 
     and ranking.
 Depends: 
-    R (>= 4.0),
+    R (>= 4.1),
     S4Vectors,
     dplyr,
     tibble,
@@ -20,7 +22,7 @@ Depends:
 License: GPL (>= 2)
 Encoding: UTF-8
 VignetteBuilder: knitr
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Collate: 
     'COEN.R'
     'globals.R'

@@ -5,12 +5,38 @@
 \alias{reexports}
 \alias{\%>\%}
 \title{Objects exported from other packages}
+\examples{
+\donttest{
+# library(RegEnrich)
+data("Lyme_GSE63085")
+data("TFs")
+
+data = log2(Lyme_GSE63085$FPKM + 1)
+colData = Lyme_GSE63085$sampleInfo
+data1 = data[seq(2000), ]
+
+design = model.matrix(~0 + patientID + week, data = colData)
+
+# Initializing a 'RegenrichSet' object
+object = RegenrichSet(expr = data1,
+                      colData = colData,
+                      method = 'limma', minMeanExpr = 0,
+                      design = design,
+                      contrast = c(rep(0, ncol(design) - 1), 1),
+                      networkConstruction = 'COEN',
+                      enrichTest = 'FET')
+                      
+# Using \%>\%
+object \%>\% regenrich_diffExpr()
+}
+
+}
 \keyword{internal}
 \description{
 These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{magrittr}{\code{\link[magrittr]{\%>\%}}}
+  \item{magrittr}{\code{\link[magrittr:pipe]{\%>\%}}}
 }}
 

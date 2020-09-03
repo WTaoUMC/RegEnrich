@@ -1,3 +1,12 @@
+# RegEnrich 0.99.17
+* Fix bugs of regenrich_diffExpr function.
+* Add an example for %>%.
+* Use Authors@R [cre] designation.
+* Update R version dependency from 4.0 to 4.1.
+
+# RegEnrich 0.99.16
+* Import magrittr
+
 # RegEnrich 0.99.15
 * Fix a bug in `regenrich_rankScore` function.
 * Reexport pipe `%>%`.

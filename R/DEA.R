@@ -318,6 +318,8 @@ DEA_LRT_DESeq2 = function(expr, pData, test = c("Wald", "LRT"),
         "greater", "less"), listValues = c(1, -1), cooksCutoff,
     independentFiltering = TRUE, alpha = 0.1, filter, theta,
     filterFun, addMLE = FALSE, blind = FALSE) {
+    
+    fitType = match.arg(fitType)
     expr = as.matrix(expr)
     object = DESeqDataSetFromMatrix(countData = expr, colData = pData,
         design = full)

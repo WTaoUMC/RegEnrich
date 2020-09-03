@@ -1,5 +1,30 @@
 #' @importFrom magrittr %>%
 #' @export
+#' @examples 
+#' \donttest{
+#' # library(RegEnrich)
+#' data("Lyme_GSE63085")
+#' data("TFs")
+#' 
+#' data = log2(Lyme_GSE63085$FPKM + 1)
+#' colData = Lyme_GSE63085$sampleInfo
+#' data1 = data[seq(2000), ]
+#'
+#' design = model.matrix(~0 + patientID + week, data = colData)
+#' 
+#' # Initializing a 'RegenrichSet' object
+#' object = RegenrichSet(expr = data1,
+#'                       colData = colData,
+#'                       method = 'limma', minMeanExpr = 0,
+#'                       design = design,
+#'                       contrast = c(rep(0, ncol(design) - 1), 1),
+#'                       networkConstruction = 'COEN',
+#'                       enrichTest = 'FET')
+#'                       
+#' # Using %>%
+#' object %>% regenrich_diffExpr()
+#' }
+#'
 magrittr::`%>%`
 
 # Obtain paramsIn slot from RegenrichSet object.
