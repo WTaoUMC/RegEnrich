@@ -13,7 +13,7 @@ Description: This package is a pipeline to identify the key gene regulators in a
     regulator-target network inference; (3) enrichment analysis; and (4) regulators scoring 
     and ranking.
 Depends: 
-    R (>= 4.1),
+    R (>= 4.0.0),
     S4Vectors,
     dplyr,
     tibble,
