@@ -6,8 +6,11 @@ setGeneric("regSEA", def = function(object, ...) standardGeneric("regSEA"))
                    pvalueCutoff = 0.05, nperm = 10000, ...) {
   network = .net(object)
   stopifnot(length(names(namedScores)) == length(namedScores))
-  
+  stopifnot(sum(is.na(namedScores)) == 0 & sum(is.infinite(namedScores)) == 0)
   ### scaled p values
+  pos0 = is.infinite(-log10(namedScores))
+  namedScores[pos0] = min(namedScores[!pos0])
+  
   namedScores1 = stats::setNames(as.vector(scale(-log10(namedScores))),
                                  names(namedScores))
   

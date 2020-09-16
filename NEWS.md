@@ -1,3 +1,6 @@
+# RegEnrich 0.99.19
+* Fix bugs in .regSEA function.
+
 # RegEnrich 0.99.18
 * Update R version dependency to 4.0.0.
 
