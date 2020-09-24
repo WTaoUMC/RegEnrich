@@ -371,6 +371,7 @@ newScore = function(reg = character(),
 #' percent (what percentage of edges from the full network is used),
 #' and enrichTest (enrichment method). By default, each element is NULL.
 #' @slot network \code{TopNetwork} object, a slot for saving a full network.
+#' @importClassesFrom S4Vectors RectangularData
 #' @export
 setClass(Class = "RegenrichSet", contains = "DeaSet",
          representation = representation(
