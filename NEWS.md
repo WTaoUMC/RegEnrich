@@ -1,3 +1,6 @@
+# RegEnrich 1.1.0
+* Bump the version number according to the Bioconductor.
+
 # RegEnrich 1.0.1
 * Fix the bug: object 'print.tbl' not found.
 
