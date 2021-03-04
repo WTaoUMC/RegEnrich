@@ -80,7 +80,7 @@ setMethod(f = "show", signature = "Enrich", definition = function(object) {
 #' @export
 # Show Score object
 setMethod("show", signature = "Score", function(object){
-  print.tbl = utils::getFromNamespace("print.tbl", "tibble")
+  print.tbl = utils::getFromNamespace("print.trunc_mat", "tibble")
   print.tbl(S3Part(object))
   invisible(object)
 })
@@ -177,7 +177,7 @@ setMethod(f = "show", signature = "RegenrichSet", .showRegenrichSet)
 #' x = newScore(letters[1:5], 1:5, 1:5, -2:2, seq(2, 1, len = 5))
 #' print(x)
 print.Score = function(x, ...){
-  print.tbl = utils::getFromNamespace("print.tbl", "tibble")
+  print.tbl = utils::getFromNamespace("print.trunc_mat", "tibble")
   print.tbl(S3Part(x), ...)
   invisible(x)
 }
