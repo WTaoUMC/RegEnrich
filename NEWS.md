@@ -1,3 +1,6 @@
+# RegEnrich 1.1.2
+* Change the email from w.tao-2@umcturecht.nl to weiyangtao1513@gmail.com
+
 # RegEnrich 1.1.0
 * Bump the version number according to the Bioconductor.
 

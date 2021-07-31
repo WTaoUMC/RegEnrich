@@ -1,9 +1,9 @@
 Package: RegEnrich
 Type: Package
 Title: Gene regulator enrichment analysis
-Version: 1.1.1
+Version: 1.1.2
 Authors@R: c(
-    person("Weiyang", "Tao", email = "w.tao-2@umcutrecht.nl", 
+    person("Weiyang", "Tao", email = "weiyangtao1513@gmail.com", 
         role = c("cre", "aut")),
     person("Aridaman", "Pandit", email = "A.Pandit@umcutrecht.nl", 
         role = "aut"))
