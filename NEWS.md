@@ -1,4 +1,4 @@
-# RegEnrich 1.1.2
+# RegEnrich 1.3.0
 * Change the email from w.tao-2@umcturecht.nl to weiyangtao1513@gmail.com
 
 # RegEnrich 1.1.0
